@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  # Phase tag for changed-scope e2e regression (bump per phase, or override
+  # via workflow_dispatch). Ethics guards run on every commit from Phase 5.
+  CURRENT_PHASE_TAG: "@phase0"
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Banned-styles gate (anti-vibe-code)
+        run: npm run lint:styles
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Unit & component tests
+        run: npm run test -- --run
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: quality
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+      - name: Phase-scoped e2e regression
+        run: npx playwright test --grep "${{ env.CURRENT_PHASE_TAG }}"
+      - name: Ethics guards (always-on from Phase 5)
+        run: npx playwright test e2e/ethics --grep "@ethics" || true
+        # The `|| true` is removed in Phase 5 when the guard specs exist;
+        # from then on these are REQUIRED checks on every commit.
