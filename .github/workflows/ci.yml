@@ -8,7 +8,7 @@ on:
 env:
   # Phase tag for changed-scope e2e regression (bump per phase, or override
   # via workflow_dispatch). Ethics guards run on every commit from Phase 5.
-  CURRENT_PHASE_TAG: "@phase0"
+  CURRENT_PHASE_TAG: "@phase2"
 
 jobs:
   quality:

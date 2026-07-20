@@ -47,3 +47,7 @@ next-env.d.ts
 
 # OS
 .DS_Store
+
+# Local embedded DB
+/.data/
+/data/raw/
