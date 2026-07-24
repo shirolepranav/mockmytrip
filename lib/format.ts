@@ -55,6 +55,13 @@ export function formatDuration(totalMinutes: number): string {
   return minutes === 0 ? `${hours}h` : `${hours}h ${minutes}m`;
 }
 
+const KM_TO_MILES = 0.621371;
+
+/** "12,480 mi" — the passport's "miles dreamed" stat. */
+export function formatMiles(km: number): string {
+  return `${Math.round(km * KM_TO_MILES).toLocaleString("en-US")} mi`;
+}
+
 /** +1 when the arrival lands on a later local date than departure. */
 export function dayOffset(
   departUtcMs: number,

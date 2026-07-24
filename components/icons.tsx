@@ -199,3 +199,26 @@ export function IconMapPin(props: IconProps) {
     </svg>
   );
 }
+
+/** Three dots — overflow menu trigger (trip card rename/delete). */
+export function IconMore(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="12" cy="5.5" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="18.5" r="1.3" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+/** Trash — delete trip. */
+export function IconTrash(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M5 7h14" />
+      <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+      <path d="M7 7l1 13a2 2 0 0 0 2 1.9h4A2 2 0 0 0 16 20l1-13" />
+      <path d="M10 11v6M14 11v6" />
+    </svg>
+  );
+}

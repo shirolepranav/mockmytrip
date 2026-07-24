@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db/client";
 import { assertOwner } from "./ownership";
 import { hashSeed } from "@/lib/engine/seed";
@@ -116,6 +116,83 @@ export async function getStampForTrip(
   const stamp = rows[0];
   if (!stamp || stamp.userId !== userId) return null;
   return stamp;
+}
+
+export interface OutboundFlightInfo {
+  flightId: string;
+  bookingId: string;
+  originIata: string;
+  destIata: string;
+  departAt: Date;
+  arriveAt: Date;
+  airlineName: string;
+  flightNumber: string;
+  distanceKm: number;
+}
+
+/**
+ * The earliest flight leg on a trip — CountdownFlip's target instant, and
+ * the source of the origin airport's IANA tz (via lib/engine/airports.ts's
+ * byIata). Every real trip has exactly one outbound leg (createBooking
+ * always writes one), but this returns null defensively rather than
+ * throwing for a hotel-only trip.
+ */
+export async function getOutboundFlightForTrip(
+  userId: string,
+  tripId: string,
+): Promise<OutboundFlightInfo | null> {
+  await getTrip(userId, tripId); // ownership check
+  const db = await getDb();
+  const rows = await db
+    .select({
+      flightId: schema.flights.id,
+      bookingId: schema.bookings.id,
+      originIata: schema.flights.originIata,
+      destIata: schema.flights.destIata,
+      departAt: schema.flights.departAt,
+      arriveAt: schema.flights.arriveAt,
+      airlineName: schema.flights.airlineName,
+      flightNumber: schema.flights.flightNumber,
+      distanceKm: schema.flights.distanceKm,
+    })
+    .from(schema.bookings)
+    .innerJoin(schema.flights, eq(schema.bookings.flightId, schema.flights.id))
+    .where(
+      and(eq(schema.bookings.tripId, tripId), eq(schema.bookings.type, "flight")),
+    )
+    .orderBy(asc(schema.flights.departAt))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+/** All passport stamps for a user, newest first. */
+export async function listStamps(userId: string): Promise<PassportStampRow[]> {
+  const db = await getDb();
+  return db
+    .select()
+    .from(schema.passportStamps)
+    .where(eq(schema.passportStamps.userId, userId))
+    .orderBy(desc(schema.passportStamps.stampDate));
+}
+
+export interface PassportSummary {
+  stamps: PassportStampRow[];
+  countryCount: number;
+  cityCount: number;
+  /** Raw sum of passportStamps.distanceKm (km) — presentation layer formats
+   *  to miles via lib/format.ts's formatMiles. */
+  totalDistanceKm: number;
+}
+
+/** The passport page's data: stamps + derived counts + "miles dreamed". */
+export async function getPassportSummary(userId: string): Promise<PassportSummary> {
+  const stamps = await listStamps(userId);
+  return {
+    stamps,
+    countryCount: new Set(stamps.map((s) => s.countryIso)).size,
+    cityCount: new Set(stamps.map((s) => `${s.countryIso}:${s.city}`)).size,
+    totalDistanceKm: stamps.reduce((sum, s) => sum + s.distanceKm, 0),
+  };
 }
 
 /* ── Trip draft (pre-checkout selection) ──────────────────────────────── */

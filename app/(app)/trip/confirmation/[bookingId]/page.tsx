@@ -92,7 +92,7 @@ export default async function ConfirmationPage({
           Start the countdown
         </Link>
         <Link
-          href="/passport"
+          href="/passport?justStamped=1"
           className="press-physical inline-flex min-h-11 items-center justify-center rounded-pill border border-line px-s5 font-semibold text-ink"
         >
           View passport
