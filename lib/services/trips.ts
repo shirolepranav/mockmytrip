@@ -100,6 +100,24 @@ export async function deleteTrip(
   await db.delete(schema.trips).where(eq(schema.trips.id, tripId));
 }
 
+export type PassportStampRow = typeof schema.passportStamps.$inferSelect;
+
+/** The passport stamp for a trip, if the caller owns it (Phase 5 write path). */
+export async function getStampForTrip(
+  userId: string,
+  tripId: string,
+): Promise<PassportStampRow | null> {
+  const db = await getDb();
+  const rows = await db
+    .select()
+    .from(schema.passportStamps)
+    .where(eq(schema.passportStamps.tripId, tripId))
+    .limit(1);
+  const stamp = rows[0];
+  if (!stamp || stamp.userId !== userId) return null;
+  return stamp;
+}
+
 /* ── Trip draft (pre-checkout selection) ──────────────────────────────── */
 
 export interface TripDraft {

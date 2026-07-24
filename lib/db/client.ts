@@ -1,7 +1,9 @@
 import { mkdirSync } from "node:fs";
 import { drizzle as drizzleNeon } from "drizzle-orm/neon-http";
 import { drizzle as drizzlePglite } from "drizzle-orm/pglite";
-import { neon } from "@neondatabase/serverless";
+import { drizzle as drizzleNeonServerless } from "drizzle-orm/neon-serverless";
+import { neon, neonConfig, Pool } from "@neondatabase/serverless";
+import ws from "ws";
 import * as schema from "./schema";
 
 /*
@@ -10,10 +12,22 @@ import * as schema from "./schema";
  *  - No DATABASE_URL (local dev / CI / tests): embedded PGlite Postgres,
  *    file-backed in .data/pglite (or in-memory when PGLITE_MEMORY=1).
  * Both expose the same Drizzle API over the same schema.
+ *
+ * The HTTP driver above is stateless (one fetch per query) and throws at
+ * runtime on `.transaction()` — Neon's own limitation, not fixable via
+ * config. Booking creation (Phase 5) needs real atomicity, so it uses a
+ * SEPARATE client below (`getBookingDb`) over the WebSocket Pool driver,
+ * which does support interactive transactions. Everything else keeps
+ * using the lighter-weight HTTP client via `getDb()`.
  */
+neonConfig.webSocketConstructor = ws;
 
 export type Db =
   | ReturnType<typeof drizzleNeon<typeof schema>>
+  | ReturnType<typeof drizzlePglite<typeof schema>>;
+
+export type BookingDb =
+  | ReturnType<typeof drizzleNeonServerless<typeof schema>>
   | ReturnType<typeof drizzlePglite<typeof schema>>;
 
 /*
@@ -23,6 +37,7 @@ export type Db =
 const globalStore = globalThis as unknown as {
   __wanderlostDb?: Db;
   __wanderlostDbReady?: Promise<void>;
+  __wanderlostBookingDb?: BookingDb;
 };
 
 function createDb(): Db {
@@ -62,6 +77,29 @@ export async function getDb(): Promise<Db> {
   }
   if (globalStore.__wanderlostDbReady) await globalStore.__wanderlostDbReady;
   return globalStore.__wanderlostDb;
+}
+
+/**
+ * Transaction-capable DB handle, for the one write path that needs real
+ * atomicity (booking creation — trip + flights + bookings + stamp + savings
+ * increment, all-or-nothing). With DATABASE_URL set, this is a WebSocket
+ * Pool client (Neon's documented driver for interactive transactions);
+ * without it, PGlite already supports `.transaction()` natively, so it
+ * reuses the same instance `getDb()` returns.
+ */
+export async function getBookingDb(): Promise<BookingDb> {
+  if (!globalStore.__wanderlostBookingDb) {
+    const url = process.env.DATABASE_URL;
+    if (url && url.startsWith("postgres")) {
+      const pool = new Pool({ connectionString: url });
+      globalStore.__wanderlostBookingDb = drizzleNeonServerless(pool, {
+        schema,
+      });
+    } else {
+      globalStore.__wanderlostBookingDb = (await getDb()) as unknown as BookingDb;
+    }
+  }
+  return globalStore.__wanderlostBookingDb;
 }
 
 export { schema };

@@ -8,7 +8,7 @@ on:
 env:
   # Phase tag for changed-scope e2e regression (bump per phase, or override
   # via workflow_dispatch). Ethics guards run on every commit from Phase 5.
-  CURRENT_PHASE_TAG: "@phase4"
+  CURRENT_PHASE_TAG: "@phase5"
 
 jobs:
   quality:
@@ -43,7 +43,5 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Phase-scoped e2e regression
         run: npx playwright test --grep "${{ env.CURRENT_PHASE_TAG }}"
-      - name: Ethics guards (always-on from Phase 5)
-        run: npx playwright test e2e/ethics --grep "@ethics" || true
-        # The `|| true` is removed in Phase 5 when the guard specs exist;
-        # from then on these are REQUIRED checks on every commit.
+      - name: Ethics guards (required on every commit from Phase 5 onward)
+        run: npx playwright test e2e/ethics --grep "@ethics"
