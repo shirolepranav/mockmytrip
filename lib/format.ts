@@ -30,6 +30,24 @@ export function formatDateInTz(utcMs: number, tz: string): string {
   }).format(new Date(utcMs));
 }
 
+/** YYYY-MM-DD in a given timezone — for prefilling <input type="date">. */
+export function isoDateInTz(utcMs: number, tz: string): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(utcMs));
+}
+
+/** Add whole days to a YYYY-MM-DD date string, calendar-safe (no timezone). */
+export function addDaysIso(iso: string, days: number): string {
+  const [year, month, day] = iso.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
 export function formatDuration(totalMinutes: number): string {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
@@ -44,15 +62,8 @@ export function dayOffset(
   arriveUtcMs: number,
   arriveTz: string,
 ): number {
-  const dayOf = (ms: number, tz: string) =>
-    new Intl.DateTimeFormat("en-CA", {
-      timeZone: tz,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(new Date(ms));
-  const depart = dayOf(departUtcMs, departTz);
-  const arrive = dayOf(arriveUtcMs, arriveTz);
+  const depart = isoDateInTz(departUtcMs, departTz);
+  const arrive = isoDateInTz(arriveUtcMs, arriveTz);
   return Math.round(
     (Date.parse(arrive) - Date.parse(depart)) / 86_400_000,
   );

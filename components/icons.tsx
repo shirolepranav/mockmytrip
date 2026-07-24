@@ -168,3 +168,34 @@ export function IconCalendar(props: IconProps) {
     </svg>
   );
 }
+
+/** Star — hotel rating. Pass fill="currentColor" for a filled state. */
+export function IconStar(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 3.5 14.6 9.1 20.6 9.9 16.2 14.1 17.3 20.1 12 17.1 6.7 20.1 7.8 14.1 3.4 9.9 9.4 9.1Z" />
+    </svg>
+  );
+}
+
+/** Bed — hotel room types. */
+export function IconBed(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <rect x="3" y="12" width="18" height="7" rx="1.5" />
+      <path d="M3 15h18" />
+      <path d="M6 12V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v3" />
+      <path d="M3 19v2M21 19v2" />
+    </svg>
+  );
+}
+
+/** Map pin — hotel neighborhood / illustrative map. */
+export function IconMapPin(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 21s7-7.58 7-12A7 7 0 0 0 5 9c0 4.42 7 12 7 12Z" />
+      <circle cx="12" cy="9" r="2.4" />
+    </svg>
+  );
+}

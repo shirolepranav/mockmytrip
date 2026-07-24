@@ -22,6 +22,17 @@ export default async function FlightSearchPage({
           $0.00.
         </p>
       </header>
+
+      {params.notice === "need-flight" ? (
+        <p
+          role="alert"
+          className="rounded-card border border-alert bg-paper2 px-s4 py-s3 text-alert"
+        >
+          Pick a flight first — hotels and your trip summary need a flight
+          to anchor the dates.
+        </p>
+      ) : null}
+
       <FlightSearchForm
         initial={{
           origin: params.o,

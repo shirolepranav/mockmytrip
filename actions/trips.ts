@@ -5,46 +5,14 @@ import { z } from "zod";
 import { establishSession, readSessionUserId } from "@/lib/auth/session";
 import { getOrCreateGuest } from "@/lib/services/users";
 import { getDraft, saveDraft } from "@/lib/services/trips";
+import { flightOfferViewSchema } from "@/lib/offer-view";
 
 /*
  * Thin wrappers over lib/services/trips (no business logic here).
  */
 
-const offerViewSchema = z.object({
-  id: z.string(),
-  airlineName: z.string(),
-  airlineCode: z.string(),
-  airlineHue: z.number(),
-  airlineLogoSeed: z.number(),
-  flightNumber: z.string(),
-  originIata: z.string(),
-  originCity: z.string(),
-  originCountry: z.string(),
-  originTz: z.string(),
-  destIata: z.string(),
-  destCity: z.string(),
-  destCountry: z.string(),
-  destTz: z.string(),
-  departUtcMs: z.number(),
-  arriveUtcMs: z.number(),
-  durationMin: z.number(),
-  distanceKm: z.number(),
-  stops: z.array(
-    z.object({
-      hubIata: z.string(),
-      hubCity: z.string(),
-      layoverMin: z.number(),
-    }),
-  ),
-  cabin: z.string(),
-  passengers: z.number(),
-  priceCents: z.number(),
-  savedCents: z.number(),
-  seed: z.number(),
-});
-
 const selectFlightSchema = z.object({
-  offer: offerViewSchema,
+  offer: flightOfferViewSchema,
   leg: z.enum(["outbound", "return"]),
   search: z.object({
     o: z.string(),
@@ -89,4 +57,21 @@ export async function selectFlightAction(formData: FormData): Promise<void> {
     redirect(`/search/flights/results?${query.toString()}`);
   }
   redirect("/search/hotels");
+}
+
+const updateTitleSchema = z.object({ title: z.string().trim().min(1).max(120) });
+
+/** Editable auto-title on the trip summary (WF §9, QA 4.9) — persists to the draft. */
+export async function updateDraftTitleAction(formData: FormData): Promise<void> {
+  const parsed = updateTitleSchema.safeParse({
+    title: String(formData.get("title") ?? ""),
+  });
+
+  const userId = await readSessionUserId();
+  if (userId && parsed.success) {
+    const draft = (await getDraft(userId)) ?? {};
+    draft.title = parsed.data.title;
+    await saveDraft(userId, draft);
+  }
+  redirect("/trip/summary");
 }
