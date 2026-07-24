@@ -4,7 +4,7 @@
 > Referenced doc sections are abbreviated: TS = TECH_SPEC, DS = DESIGN_SYSTEM, WF = APP_WORKFLOW.
 
 ## 0. How to use this plan
-- **10 phases (0–9).** Each phase contains: Objective, Prerequisites, Development Tasks (numbered, file-level), QA Test Cases (with expected results), Regression Tests, Exit Criteria, and an effort estimate (solo experienced dev + AI coding agent).
+- **11 phases (0–10).** Each phase contains: Objective, Prerequisites, Development Tasks (numbered, file-level), QA Test Cases (with expected results), Regression Tests, Exit Criteria, and an effort estimate (solo experienced dev + AI coding agent).
 - **Phases are sequential.** Do not start a phase until the previous phase's Exit Criteria are all green.
 - **Regression policy (per project owner's explicit instruction):** each phase runs regression tests **ONLY on the new features introduced in that phase** — not the full app. The one standing exception: the two **ethics guard tests** (no-payment-field, SIMULATION-present) run in CI on *every* commit from Phase 5 onward, because they protect hard product guarantees.
 - **Definition of Done (every task):** TypeScript strict passes; lint passes; uses design tokens (no hardcoded hex/spacing); has a reduced-motion variant if animated; has at least one test; works at 390px and 768px widths.
@@ -364,9 +364,57 @@
 
 ---
 
-## PHASE 9 — Polish, Performance, Accessibility & Ethics Audit
+## PHASE 9 — Sharing, Collaboration & Calendar Export
+**Objective:** make anticipation social and the plans portable — tokenized share links, collaborative itinerary editing, and `.ics` calendar export, all with hard guards against real-world confusion and referral dark patterns.
+**Prerequisites:** Phase 8 (itinerary + POIs + notifications must exist).
+**Estimate:** 4–5 days.
+
+### Development tasks
+1. Schema (TS §4): `trip_shares`, `trip_collaborators`, add `itinerary_items.created_by_user_id`; migrations + indexes (`token` unique, `(trip_id,user_id)` unique).
+2. `lib/services/access.ts`: `assertCanView(userId, tripId)` / `assertCanEdit(userId, tripId)` resolving owner **and** collaborator roles. Refactor every existing itinerary mutation to route through `assertCanEdit` (owner-only actions — delete trip, bookings, passport — keep `assertOwner`).
+3. `lib/services/shares.ts`: `createShare(tripId, permission)` (22-char base62 CSPRNG token), `listShares`, `setPermission`, `revokeShare`, `joinAsCollaborator(token, userId)`, `removeCollaborator`, `setCollaboratorRole`. Rate-limit share creation (10/user/day).
+4. **Share sheet** `components/share-sheet.tsx` per WF §20b: permission selector, copy button, Web Share API on mobile, active-links list with view counts + revoke, collaborators list with downgrade/remove. Plain confirms, zero referral copy.
+5. **Public shared page** `app/s/[token]/page.tsx` per WF §20c: Server Component token resolution; SIMULATION banner above the fold; itinerary with "added by" chips; revoked/expired/deleted friendly states; "Add your ideas" CTA → sign-in/guest-upgrade → `joinAsCollaborator`; "Make your own" CTA. Rate-limit token lookups by IP; cache ≤ 60s so revocation is near-immediate.
+6. Collaborative editing on the shared page and owner's itinerary: attribution chips, last-write-wins per item, `sort_order` re-normalization on read, refresh-on-focus (`revalidateTag`) rather than realtime.
+7. Collaborator notifications: `notify_opt_in` on join (**default false**, explicit opt-in only); milestone pushes reuse Phase 8 cron; owner receives at most one batched "new ideas" notice per day.
+8. **Calendar export** `app/api/calendar/[tripId]/route.ts` per TS §8b.3: RFC 5545 VCALENDAR with `SUMMARY:✈ (Pretend) {City} · Wanderlost`, disclaimer-first `DESCRIPTION`, `TRANSP:TRANSPARENT`, `STATUS:TENTATIVE`, stable `UID`, destination `VTIMEZONE`, optional all-day itinerary events, no ORGANIZER/ATTENDEE. Auth + `assertCanView`.
+9. "Add to calendar" button on trip detail, confirmation, and shared page per WF §20d, with download-blocked fallback and the "shows as Free" reassurance toast.
+10. Settings: manage all shares in one place (revoke any link, leave a trip you were invited to).
+11. **Guard tests** added to the permanent CI set: `ethics/no-referral-gating.spec.ts` (greps for "invite … to unlock|refer a friend to" patterns) and `ethics/calendar-labeling.spec.ts` (asserts `.ics` contains the pretend title, disclaimer, and `TRANSP:TRANSPARENT`).
+
+### QA test cases
+| # | Test | Expected |
+|---|------|----------|
+| 9.1 | Generate view-only link | Token 22 chars, unguessable, not derived from tripId; `/s/[token]` renders without auth |
+| 9.2 | SIMULATION on shared page | Visible without scrolling at 390px; guard spec passes |
+| 9.3 | Privacy scan of shared page | Owner email, other trips, passport, savings totals all absent from DOM + JSON payload |
+| 9.4 | Revoke link | Next request to `/s/[token]` shows "tucked away" within ≤ 60s; collaborator's open tab fails gracefully on next mutation |
+| 9.5 | Edit-permission join | Sign-in/guest-upgrade creates collaborator row (role editor); trip appears in their dashboard |
+| 9.6 | Collaborator adds POI to day 2 | Item saved with `created_by_user_id`; "added by" chip renders for owner |
+| 9.7 | Collaborator privilege boundaries | Cannot delete trip, alter bookings, view owner's other trips/passport → all denied (403), no leak |
+| 9.8 | Downgrade editor → viewer | Subsequent mutation denied; existing items remain, still attributed |
+| 9.9 | Concurrent edits (two sessions) | Last-write-wins; no duplicate/lost items; order re-normalizes sanely |
+| 9.10 | Share rate limit | 11th share in a day → friendly message, no token created |
+| 9.11 | `.ics` import into Google Calendar + Apple Calendar | Imports cleanly; title shows "(Pretend)"; description disclaimer first line |
+| 9.12 | `.ics` availability | `TRANSP:TRANSPARENT` present → renders as **Free**, not Busy |
+| 9.13 | `.ics` re-import | Stable `UID` updates the existing event instead of duplicating |
+| 9.14 | `.ics` timezone | Departure time correct in destination tz; all-day items use `VALUE=DATE` |
+| 9.15 | No OAuth | No Google auth flow, no calendar-read scope requested anywhere (network log clean) |
+| 9.16 | Referral-gating grep | 0 matches; no feature/stamp gated behind sharing |
+| 9.17 | Collaborator notifications | Default off; only sent after explicit opt-in; owner "new ideas" batched ≤ 1/day |
+| 9.18 | Viewports + axe on share sheet + shared page | 390/820 clean; 0 critical |
+
+### Regression tests (new features only)
+- `@phase9` e2e: create-share → view → join-as-editor → collaborate → revoke; permission-boundary specs; `.ics` generation/labeling/timezone specs; rate-limit spec. Plus the two new guards (no-referral-gating, calendar-labeling) added to the always-on CI set alongside the Phase 5 ethics guards.
+
+### Exit criteria
+- ✅ All `@phase9` green; ✅ collaborator permission boundaries proven by tests; ✅ revocation effective ≤ 60s; ✅ `.ics` verified in Google + Apple + Outlook with Free availability and pretend labeling; ✅ zero referral gating; ✅ no calendar OAuth.
+
+---
+
+## PHASE 10 — Polish, Performance, Accessibility & Ethics Audit
 **Objective:** ship-quality pass — budgets enforced, a11y complete, ethics audited, Capacitor-readiness proven.
-**Prerequisites:** Phase 8.
+**Prerequisites:** Phase 9.
 **Estimate:** 3–4 days.
 
 ### Development tasks
@@ -374,7 +422,7 @@
 2. Performance: verify GSAP/Rive/confetti are dynamic-imported; bundle-analyze (landing ≤ 130 KB gzip initial JS); image/art audit (`next/image`, AVIF/WebP, SVG-first); font subsetting confirmed; fix CLS sources (reserve space for boards/cards).
 3. Full a11y pass: axe across every route; keyboard-only walkthrough of the entire booking flow; screen-reader spot checks (VoiceOver iOS) on countdown, board, pass; focus-visible everywhere; contrast re-verification both themes.
 4. Full reduced-motion sweep: every animation checked against its variant (checklist from DS §8 catalog).
-5. **Ethics audit (checklist, recorded in repo):** no payment fields (guards green); SIMULATION on all required surfaces incl. PDF + email; no dark patterns (no scarcity strings — automated grep for "only X left|hurry|expires soon"); notifications opt-in + capped; export/delete verified; brand-blocklist DOM scans green; About page accurate.
+5. **Ethics audit (checklist, recorded in repo):** no payment fields (guards green); SIMULATION on all required surfaces incl. PDF + email; no dark patterns (no scarcity strings — automated grep for "only X left|hurry|expires soon"); notifications opt-in + capped; export/delete verified; share links revocable + collaborator boundaries enforced; calendar .ics labels pretend + Free availability; no referral gating; brand-blocklist DOM scans green; About page accurate.
 6. Copy polish: warm, witty microcopy pass over all states (empty/error/toasts) per brand personality.
 7. **Capacitor-readiness dry run:** `NEXT_PUBLIC_IS_NATIVE=true npm run build` (static export) succeeds; confirm no page hard-depends on Server Actions without a `lib/services` path; document any deltas in TS §12.
 8. Final Lighthouse CI on production build: Perf ≥ 90, A11y ≥ 95, BP ≥ 95, PWA ✓ (mobile).
@@ -383,17 +431,17 @@
 ### QA test cases
 | # | Test | Expected |
 |---|------|----------|
-| 9.1 | Lighthouse mobile (landing, results, checkout, trips) | Perf ≥ 90, A11y ≥ 95, BP ≥ 95, PWA ✓ on all four |
-| 9.2 | Bundle budget | Landing initial JS ≤ 130 KB gzip; GSAP absent from landing chunk |
-| 9.3 | Keyboard-only booking | Search→checkout→confirmation completable; visible focus throughout |
-| 9.4 | Reduced-motion full sweep | Every DS §8 item has working variant (checklist 100%) |
-| 9.5 | Dark-pattern grep | 0 scarcity/urgency strings |
-| 9.6 | Ethics checklist | All items pass, signed off in `docs/ETHICS_AUDIT.md` |
-| 9.7 | Static-export dry run | Build succeeds; app boots from `/out` against deployed API |
-| 9.8 | CLS on results + checkout | < 0.05 |
+| 10.1 | Lighthouse mobile (landing, results, checkout, trips) | Perf ≥ 90, A11y ≥ 95, BP ≥ 95, PWA ✓ on all four |
+| 10.2 | Bundle budget | Landing initial JS ≤ 130 KB gzip; GSAP absent from landing chunk |
+| 10.3 | Keyboard-only booking | Search→checkout→confirmation completable; visible focus throughout |
+| 10.4 | Reduced-motion full sweep | Every DS §8 item has working variant (checklist 100%) |
+| 10.5 | Dark-pattern grep | 0 scarcity/urgency strings |
+| 10.6 | Ethics checklist | All items pass, signed off in `docs/ETHICS_AUDIT.md` |
+| 10.7 | Static-export dry run | Build succeeds; app boots from `/out` against deployed API |
+| 10.8 | CLS on results + checkout | < 0.05 |
 
 ### Regression tests (new features only)
-- `@phase9`: the audit suites themselves (perf budgets, a11y sweep, ethics checklist, static-export build test) on the polished surfaces.
+- `@phase10`: the audit suites themselves (perf budgets, a11y sweep, ethics checklist, static-export build test) on the polished surfaces.
 
 ### Exit criteria
 - ✅ All budgets + audits green; ✅ ethics audit signed off; ✅ static export proven; ✅ tagged release deployed.
@@ -412,7 +460,8 @@
 | 6 | Trips, countdown, passport | 3–4 days |
 | 7 | Itinerary, packing, AI, Explore/POIs, export | 5–6 days |
 | 8 | PWA, push, memories | 3–4 days |
-| 9 | Polish + audits | 3–4 days |
-| **Total** | | **~32–42 dev-days** |
+| 9 | Sharing, collaboration, calendar (.ics) | 4–5 days |
+| 10 | Polish + audits | 3–4 days |
+| **Total** | | **~36–47 dev-days** |
 
-**MVP cut line:** Phases 0–6 = a complete, delightful MVP (PRD §7.1 minus itinerary/packing/push/memories). Phases 7–8 are Tier 2. Ship after Phase 9's audit regardless of cut.
+**MVP cut line:** Phases 0–6 = a complete, delightful MVP (PRD §7.1 minus itinerary/packing/push/memories). Phases 7–8 are Tier 2. Phase 9 (sharing/calendar) is Tier 2 as well. Ship after Phase 10's audit regardless of cut.

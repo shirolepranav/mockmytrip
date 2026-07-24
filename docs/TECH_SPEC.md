@@ -84,10 +84,13 @@ All ids `uuid` (pk, default `gen_random_uuid()`); timestamps `timestamptz` defau
 - **pois** (seed, read-only, REAL places): `id, name, city, iso_country, lat, lng, category (sight|landmark|museum|restaurant|cafe|viewpoint|park), description, image_url (nullable), source (wikidata|wikivoyage|osm), source_id, attribution, rank`.
 - **itinerary_items:** `id, trip_id, day_index, time (nullable), title, note, category (food|sight|activity|transit|rest), poi_id (nullable fk → pois), sort_order`.
 - **packing_items:** `id, trip_id, label, category, is_checked (bool), sort_order, is_auto (bool)`.
+- **trip_shares:** `id, trip_id (fk), owner_user_id (fk), token (unique, 22-char base62 from CSPRNG), permission ('view'|'edit'), is_revoked (bool, default false), expires_at (nullable), view_count (int), created_at`.
+- **trip_collaborators:** `id, trip_id (fk), user_id (fk), role ('viewer'|'editor'), joined_via_share_id (fk nullable), notify_opt_in (bool, default false), created_at`. Unique on `(trip_id, user_id)`.
+- **itinerary_items:** gains `created_by_user_id (fk)` so collaborative items show attribution ("added by Sam").
 - **push_subscriptions:** `id, user_id, endpoint (unique), p256dh, auth, created_at`.
 - **mood_checkins** (optional): `id, user_id, session_id, phase (before|after), score (1–5), created_at`.
 
-**Indexes:** `airports(iata_code)`, `airports(municipality)`, `bookings(trip_id)`, `trips(user_id, status)`, `passport_stamps(user_id)`, `push_subscriptions(endpoint unique)`.
+**Indexes:** `airports(iata_code)`, `airports(municipality)`, `bookings(trip_id)`, `trips(user_id, status)`, `passport_stamps(user_id)`, `push_subscriptions(endpoint unique)`, `trip_shares(token unique)`, `trip_collaborators(user_id)`, `trip_collaborators(trip_id, user_id) unique`.
 
 ## 5. Synthetic Data Engine
 
@@ -155,6 +158,35 @@ Unlike airlines/hotels, POIs are **real places**, sourced free at build time (no
 - **Middleware allow-list:** exempt `/manifest.webmanifest`, `/sw.js`, `/workbox*` so auth middleware doesn't block PWA files.
 - **Web push:** VAPID keys; `push_subscriptions` table; `/api/push/subscribe`; sending via Vercel Cron → `/api/push/send` for countdown milestones. **Opt-in only.** iOS supports web push only for home-screen-installed PWAs (iOS 16.4+).
 - **Register the SW only on the web target** (guard with a native-platform check) so a future Capacitor build never tries to use it (see §12.5).
+
+## 8b. Sharing, Collaboration & Calendar Export
+
+### 8b.1 Share links
+- **Token:** 22-char base62 from `crypto.randomUUID()`/CSPRNG bytes — unguessable, not sequential, never derived from `trip_id`. Stored in `trip_shares.token`.
+- **Route:** `/s/[token]` — public, no auth required to *view*. Server Component resolves token → trip; returns 404-style "this dream has been tucked away" if `is_revoked` or expired.
+- **Permissions:** `view` (read-only render) or `edit` (requires the visitor to sign in/guest-upgrade, then creates a `trip_collaborators` row with role `editor`).
+- **Owner controls:** list active links, copy, toggle permission, revoke (sets `is_revoked`), remove a collaborator, downgrade editor→viewer. Revocation is immediate (checked per request, never cached beyond 60s).
+- **Authorization helper:** extend `assertOwner` into `assertCanView(userId, tripId)` / `assertCanEdit(userId, tripId)` in `lib/services/access.ts`. Every itinerary mutation routes through `assertCanEdit`. Collaborators can mutate **only** `itinerary_items` for that trip — never bookings, trip deletion, other trips, or the owner's profile.
+- **Privacy:** shared pages expose only the trip (route, dates, itinerary, destination art) and the owner's display name — never email, other trips, passport, or savings totals.
+- **Abuse control:** rate-limit share creation (10/user/day) and `/s/[token]` lookups by IP; `view_count` for the owner's awareness only (no analytics on viewers).
+
+### 8b.2 Collaboration semantics
+- **Conflict model:** last-write-wins per item, matching the existing app-wide policy. Ordering conflicts resolved by re-normalizing `sort_order` on read. No realtime/CRDT layer in this tier — a lightweight poll (or `revalidateTag` on focus) is sufficient for planning-pace edits and keeps the app free-tier and Capacitor-friendly.
+- **Attribution:** `itinerary_items.created_by_user_id` renders as "added by {name}" chips.
+- **Notifications:** collaborators get countdown milestones **only** if `notify_opt_in` is true; the owner is never auto-notified of every edit (batched "3 new ideas from Sam" at most once/day).
+
+### 8b.3 Calendar export (.ics — deliberately not the Google Calendar API)
+Rationale: an `.ics` file works with Google Calendar, Apple Calendar, and Outlook at once, needs no OAuth, no Google Cloud project + verification, and no read access to the user's calendar — which is required by data minimalism (§11).
+- **Route:** `api/calendar/[tripId]/route.ts` → `text/calendar; charset=utf-8`, `Content-Disposition: attachment; filename="wanderlost-{city}.ics"`. Auth + `assertCanView`.
+- **Generation:** RFC 5545 via `ics` (or hand-built VCALENDAR). Emit a VEVENT for departure, one for return, and optionally all-day events per itinerary day.
+- **Mandatory labeling fields:**
+  - `SUMMARY:✈ (Pretend) {City} · Wanderlost`
+  - `DESCRIPTION:` opens with "This is a SIMULATED trip from Wanderlost. No flights, hotels, or payments are real."
+  - `TRANSP:TRANSPARENT` → shows as **Free**, never Busy, so colleagues checking availability are not misled.
+  - `STATUS:TENTATIVE`; `UID` = `{bookingId}@wanderlost` (stable, so re-import updates rather than duplicates); `DTSTAMP` UTC; `LOCATION` = destination city.
+  - No `ORGANIZER`/`ATTENDEE` (avoids invite emails); no alarms unless the user opts in.
+- **Timezones:** emit `DTSTART;TZID=` with the destination airport's IANA tz (already seeded per §5.1) plus a `VTIMEZONE` block; all-day items use `VALUE=DATE`.
+- **Native path:** on a future Capacitor build, write the `.ics` via `@capacitor/filesystem` and open with the system handler — same file, no API change.
 
 ## 9. Performance Budgets
 - Landing initial JS ≤ 130 KB gzip; route chunks lazy-loaded; **GSAP/Rive dynamically imported only on routes that use them.**

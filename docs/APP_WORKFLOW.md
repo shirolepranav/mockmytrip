@@ -70,7 +70,7 @@ Nav tabs; theme; SIMULATION badge (tapping it opens a short explainer sheet); of
 - **Interactions:** tap trip → detail; overflow → rename/delete (confirm, no confirm-shaming).
 
 ## 13. Trip Detail + Countdown (`/trips/[tripId]`)
-- **Content:** hero (seeded destination art), **CountdownFlip** to departure, trip facts, links to Itinerary, Packing, Boarding pass, Passport stamp, savings. After end date → Memories surfaces.
+- **Content:** hero (seeded destination art), **CountdownFlip** to departure, trip facts, links to Itinerary, Packing, Boarding pass, Passport stamp, savings, **Share** (opens WF §20b) and **Add to calendar** (WF §20d). Collaborator avatars shown if the trip is shared. After end date → Memories surfaces.
 - **States:** upcoming (live countdown); departure-day/in-progress ("Bon voyage!" celebratory state); past/memory (Memories unlocked banner); loading/offline/error.
 - **Interactions:** seconds tick (reduced-motion: static with periodic update + aria-live on day change); navigate to sub-pages.
 - **Edge case — past-dated trips:** if a trip's date already passed, skip gracefully to the Memory state; never show a negative countdown.
@@ -110,6 +110,25 @@ Nav tabs; theme; SIMULATION badge (tapping it opens a short explainer sheet); of
 - **States:** loading (paper-plane loader); populated (staggered cards); city not yet seeded ("We haven't mapped this dream yet" + suggest nearby seeded city); offline (cached POIs for booked trips readable); error (retry).
 - **Interactions:** tab switch (chip filter); tap card → POI detail sheet (full description, map-style static locator labeled illustrative, attribution, "Add to itinerary"); add → day-picker sheet → success toast with undo; entry points: trip detail ("Explore {city}"), itinerary builder ("Add from Explore"), and hotel/flight detail pages ("What's there?").
 - **Hard rules:** POIs never show fake prices, ratings, or reviews; "Real place" chip always present; attribution always visible on detail; any simulated booking content nearby keeps its SIMULATION label. This page makes fake trips useful for real planning — pair with "Export itinerary" (WF §14).
+
+## 20b. Share Sheet (from Trip Detail / Itinerary) — Tier 2
+- **Content:** "Share this dream" sheet — permission selector (**View only** / **Can add ideas**), generated link with Copy button, native share (Web Share API) on mobile, list of active links (created date, view count, Revoke), list of collaborators (name, role, downgrade/remove).
+- **States:** no link yet (Generate CTA); link generated (copy + share); copied (toast); revoked (row greys out, link dies immediately); rate-limited (friendly "you've shared a lot today"); error/retry.
+- **Interactions:** generate → token created; permission change updates existing link; revoke asks a plain confirm (no shaming); remove collaborator is reversible by re-sharing.
+- **Hard rules:** sharing is never required to unlock anything; no "invite N friends" prompts anywhere; the sheet never suggests posting publicly.
+
+## 20c. Shared Trip View (`/s/[token]`) — public, no account needed
+- **Content:** destination art, trip title + owner display name ("Priya's dream trip"), dates, route summary, day-by-day itinerary (with "added by" chips), Explore POIs referenced, **prominent SIMULATION banner** ("This is a dream trip — nothing here is booked or paid for"), and a gentle "Make your own" CTA.
+- **States:** view-only (default); editable-invite (shows "Add your ideas" CTA → sign-in/guest-upgrade → becomes collaborator); revoked/expired ("This dream has been tucked away"); trip deleted (same friendly page); loading; offline (cached if previously opened).
+- **Interactions:** viewer with edit permission can add/edit/reorder itinerary items and add POIs from Explore — **only** the itinerary; bookings, trip deletion, passport, savings, and the owner's other trips are never accessible or visible.
+- **Edge cases:** owner revokes while a collaborator has the page open → next mutation fails gracefully with an explanatory message; collaborator's added items remain (attributed) unless the owner deletes them.
+- **Hard rules:** SIMULATION label must be visible without scrolling; never expose the owner's email; no viewer tracking beyond an aggregate count for the owner.
+
+## 20d. Add to Calendar (from Trip Detail, Confirmation, and Shared Trip)
+- **Content:** "Add to calendar" button → downloads `.ics` (works with Google, Apple, Outlook). Optional checkbox "include itinerary days as all-day events."
+- **States:** default; generating (button spinner); downloaded (toast: "Saved — it'll show as *Free* so no one thinks you're actually away"); unsupported/blocked download (fallback: copy link to file); error/retry.
+- **Interactions:** single tap download; on mobile the OS opens the system calendar importer.
+- **Hard rules (real-world confusion guards):** event title self-labels as pretend (`✈ (Pretend) {City} · Wanderlost`); description opens with the simulation disclaimer; availability is **Free** (`TRANSP:TRANSPARENT`), never Busy; status TENTATIVE; no attendee invites are sent; no Google OAuth or calendar read access is ever requested.
 
 ## 21. Global states
 - **Offline (PWA):** app shell + cached trips/passport available; search shows "you're offline — dreams need a connection" with cached suggestions; new saves queue and sync.

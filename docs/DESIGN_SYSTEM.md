@@ -113,7 +113,7 @@ Contrast (verified AA): `--ink` on `--paper` ≈ 11:1; `--sunset` used on `--ink
 - **DepartureBoard** (results loader + header widget).
 - **CountdownFlip.**
 - **Stepper/Wizard** (search → results → detail → summary → checkout → confirmation) with a "flight path" progress indicator.
-- **Toasts/Snackbar; Modal/Sheet** (bottom sheet on mobile); **Tabs; Chips/Filters; Badge** (incl. SIMULATION badge); **Skeleton/Loader** (departure-board style); **Passport** components (StampGrid, PassportCover, StampDetail); **ItineraryDay/ItineraryItem** (drag handle); **PackingList/PackingItem; SavingsTally; MoodCheckIn; Nav** (bottom tab bar on mobile, safe-area aware).
+- **ShareSheet** (permission selector, link + copy, active-links list, collaborator rows with role chips); **CollaboratorChip** ("added by Sam" attribution on itinerary items); **CalendarButton** (with "shows as Free" reassurance toast); **Toasts/Snackbar; Modal/Sheet** (bottom sheet on mobile); **Tabs; Chips/Filters; Badge** (incl. SIMULATION badge); **Skeleton/Loader** (departure-board style); **Passport** components (StampGrid, PassportCover, StampDetail); **ItineraryDay/ItineraryItem** (drag handle); **PackingList/PackingItem; SavingsTally; MoodCheckIn; Nav** (bottom tab bar on mobile, safe-area aware).
 
 ## 10. Responsive & Touch Guidelines
 - **Mobile-first.** Breakpoints: `sm 480`, `md 768` (iPad portrait), `lg 1024` (iPad landscape/desktop), `xl 1280`.

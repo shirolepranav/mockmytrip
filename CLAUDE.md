@@ -21,6 +21,13 @@ Canonical docs: `docs/PRD.md`, `docs/TECH_SPEC.md`, `docs/DESIGN_SYSTEM.md`,
 5. ALWAYS use design tokens (CSS variables) — never hardcode hex, spacing, or radii.
 6. ALWAYS include a reduced-motion variant for every animation, in the same change.
 7. Data minimalism: only optional email + user content. Export & delete must always work.
+8. NEVER gate features behind sharing ("invite 3 friends to unlock…" is banned). Sharing exists
+   because it's useful; signups are a byproduct, not a growth mechanic.
+9. Calendar exports (.ics) MUST self-label as pretend in the SUMMARY, open the DESCRIPTION with the
+   simulation disclaimer, and set TRANSP:TRANSPARENT (Free, never Busy). Never request Google Calendar
+   OAuth or any calendar-read scope — .ics only.
+10. Shared trip pages (/s/[token]) MUST show the SIMULATION label above the fold and must never expose
+   the owner's email, other trips, passport, or savings. Collaborators can edit ONLY itinerary_items.
 
 ## Commands
 - Dev: `npm run dev`

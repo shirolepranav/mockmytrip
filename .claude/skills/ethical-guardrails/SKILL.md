@@ -1,6 +1,6 @@
 ---
 name: ethical-guardrails
-description: Use when touching checkout, booking, boarding pass, email, notifications, metrics, onboarding, POI data, or any labeling in Wanderlost. Enforces the hard ethical rules. Triggers on "checkout", "payment", "booking", "notification", "streak", "email", "simulation label", "metrics", "real place".
+description: Use when touching checkout, booking, boarding pass, email, notifications, metrics, onboarding, POI data, share links, collaboration, calendar export, or any labeling in Wanderlost. Enforces the hard ethical rules. Triggers on "checkout", "payment", "booking", "notification", "streak", "email", "simulation label", "metrics", "real place", "share", "collaborator", "calendar", "ics".
 ---
 
 These rules are non-negotiable. If a request conflicts, refuse and explain.
@@ -22,9 +22,22 @@ These rules are non-negotiable. If a request conflicts, refuse and explain.
    never attach fake prices/ratings/reviews to them, and keep source attribution (OSM ODbL, CC BY-SA).
    Bookings referencing a real POI in an itinerary are still clearly simulated bookings.
 
+8. NO referral gating: sharing must never unlock a feature, stamp, or reward. Signups from sharing are
+   a byproduct, not a growth mechanic. No "invite N friends" copy anywhere.
+9. Shared trip pages (/s/[token]): SIMULATION label above the fold; never expose owner email, other trips,
+   passport, or savings totals. Collaborators may edit ONLY itinerary_items — never bookings, trip deletion,
+   or other trips. Revocation must take effect within 60s.
+10. Calendar export is .ics ONLY — never Google Calendar OAuth, never a calendar-read scope.
+   Every .ics MUST have: SUMMARY self-labelled pretend (e.g. "✈ (Pretend) {City} · Wanderlost"),
+   DESCRIPTION opening with the simulation disclaimer, TRANSP:TRANSPARENT (Free, never Busy),
+   STATUS:TENTATIVE, stable UID, no ORGANIZER/ATTENDEE (no invite emails).
+
 ## Required tests when editing these areas
 - "no payment field" DOM assertion passes (zero card/billing inputs anywhere; no payment SDK scripts).
 - "SIMULATION present" assertion on checkout, boarding pass (screen + PDF), and email template.
 - Dark-pattern grep passes (no "only X left|hurry|expires soon" strings).
 - Notification flows require explicit opt-in.
 - POI surfaces show attribution and the "Real place" chip.
+- Referral-gating grep passes (no "invite ... to unlock|refer a friend" patterns).
+- Calendar-labeling spec passes (.ics contains pretend title, disclaimer, TRANSP:TRANSPARENT).
+- Shared-page privacy scan passes (no owner email / other trips / passport in DOM or payload).

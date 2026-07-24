@@ -1,12 +1,37 @@
-/* Placeholder — the real flight search ships in Phase 3. */
-export default function FlightSearchPage() {
+import { FlightSearchForm } from "@/components/flight-search-form";
+
+/*
+ * Flight search (WF §3): the core entry point. Popular-destination
+ * suggestions keep the empty state warm.
+ */
+
+export const metadata = { title: "Search flights" };
+
+export default async function FlightSearchPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
+  const params = await searchParams;
   return (
-    <section className="flex flex-col items-start gap-s3">
-      <h1 className="font-display text-2xl">Where to?</h1>
-      <p className="max-w-prose text-ink-soft">
-        Flight search is boarding soon. The synthetic engine (Phase 1) and the
-        departure-board loader (Phase 3) arrive shortly.
-      </p>
+    <section className="mx-auto flex w-full max-w-xl flex-col gap-s5">
+      <header>
+        <h1 className="font-display text-3xl">Where to?</h1>
+        <p className="mt-s2 text-ink-soft">
+          Real airports, pretend flights. Pick anywhere — it&apos;s all
+          $0.00.
+        </p>
+      </header>
+      <FlightSearchForm
+        initial={{
+          origin: params.o,
+          destination: params.d,
+          departDate: params.depart,
+          returnDate: params.return,
+          passengers: params.pax ? Number(params.pax) : undefined,
+          cabin: params.cabin,
+        }}
+      />
     </section>
   );
 }

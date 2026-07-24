@@ -73,6 +73,9 @@ Wanderlost applies this to travel — the highest-anticipation experiential-purc
 - **Explore destination guide (REAL places):** famous sights, landmarks, and restaurants per destination, seeded from open data (Wikidata, Wikivoyage, OpenStreetMap). POIs are real and labeled "Real place"; bookings/prices remain simulated. Makes the app useful for *actual* trip planning — research (Chen 2021, *Tourism Analysis*) shows people who plan trips more actually travel more and are happier.
 - Itinerary builder (day-by-day, drag to reorder; optional AI suggestions via LLM API; add real POIs from Explore directly to itinerary days).
 - **Itinerary export** (shareable/printable text or PDF) so a "fake trip" plan doubles as a real-trip head start.
+- **Trip sharing & collaboration:** share a trip via a tokenized link; recipients can view read-only or (if granted) **co-edit the itinerary** — adding places to days. Shared trips appear in both users' dashboards. Social savoring is supported by the research (shared experiences produce more happiness than solo ones) and collaborative planning is a genuine unsolved pain for real group trips.
+- **Calendar export (.ics):** download an `.ics` file that works with Google Calendar, Apple Calendar, and Outlook — no OAuth, no calendar read access, no Google Cloud project. Events are self-labelling as simulated and default to "Free" availability.
+- **Collaborator countdowns/reminders:** collaborators who opt in get the same countdown milestones for a shared trip.
 - Packing lists (templated by destination climate + trip length; check-off).
 - Web push (opt-in): countdown milestones, "trip day," memory prompts.
 - Trip memories (unlock after fake end date: recap, "postcard," savings tally).
@@ -125,6 +128,25 @@ Wanderlost applies this to travel — the highest-anticipation experiential-purc
 - AC3: Notifications are opt-in and frequency-capped.
 - AC4: Settings allow full export and delete of my data.
 
+**US-9 Share a trip.** *As a user, I can share my dream trip with a friend.*
+- AC1: From trip detail I can generate a share link (random unguessable token) and choose **View only** or **Can edit**.
+- AC2: The shared page shows the itinerary, route, and destination art, with the SIMULATION label unmistakably present so no viewer believes a real booking exists.
+- AC3: Viewers need no account to view; an account is only required to co-edit or save the trip.
+- AC4: I can revoke the link at any time; revoked links show a friendly "this dream has been tucked away" page.
+- AC5: Sharing is never required to unlock features — no referral gating (see §9.3).
+
+**US-10 Collaborate on an itinerary.** *As an invited friend, I can add places to the plan.*
+- AC1: With edit permission I can add/edit/reorder itinerary items and add POIs from Explore.
+- AC2: Each item shows who added it; changes appear for the owner on next load.
+- AC3: The owner can downgrade a collaborator to view-only or remove them.
+- AC4: Collaborators cannot delete the trip, change bookings, or see the owner's other trips.
+
+**US-11 Add to calendar.** *As a user, I can put my trip in my calendar.*
+- AC1: "Add to calendar" downloads a valid `.ics` importable by Google Calendar, Apple Calendar, and Outlook.
+- AC2: The event title self-labels as pretend (e.g. `✈ (Pretend) Tokyo · Wanderlost`) and the description states it is a simulation with no real booking.
+- AC3: Events default to **Free** availability (`TRANSP:TRANSPARENT`), never Busy, so colleagues checking availability aren't misled.
+- AC4: No Google Calendar OAuth and no calendar read permission is ever requested.
+
 **US-8 Accessibility & motion.** *As a user, I can turn motion down.*
 - AC1: If OS `prefers-reduced-motion` is set, all non-essential animation defaults to instant/opacity transitions.
 - AC2: A manual reduced-motion toggle in Settings overrides.
@@ -133,7 +155,8 @@ Wanderlost applies this to travel — the highest-anticipation experiential-purc
 ## 9. Ethical Requirements (hard, non-negotiable)
 1. **Persistent, unmissable SIMULATION labeling** on every screen, the checkout, the boarding pass, and the email.
 2. **Never collect payment information** — no card fields, no billing address, no payment SDKs.
-3. **No dark patterns:** no false scarcity, no countdown-to-book pressure, no punishing streaks, no confirm-shaming, no manipulative FOMO, no auto-opt-in notifications.
+3. **No dark patterns:** no false scarcity, no countdown-to-book pressure, no punishing streaks, no confirm-shaming, no manipulative FOMO, no auto-opt-in notifications. **No referral gating** — sharing must never be required to unlock a feature, stamp, or reward ("invite 3 friends to unlock…" is banned). Any signups sharing produces are a byproduct, not a growth mechanic.
+3b. **Real-world confusion guards for shared/exported artifacts:** shared trip pages carry the SIMULATION label; calendar events self-label as pretend, state the simulation in the description, and default to Free availability so a colleague checking a calendar never assumes real travel.
 4. **Wellbeing framing:** savings, savoring, calm; optional mood check-ins; gentle time nudges.
 5. **Data minimalism:** collect only optional email + user-created content; easy export & delete; no third-party ad/tracking.
 6. **No impersonation** of real airlines/hotels/brands — all bookable names fictional; disclaimers where confusion is possible. **Exception — real POIs:** sights/restaurants in Explore are real places (facts, not bookings), labeled "Real place," never given fake prices/ratings/reviews, with source attribution (OSM ODbL, CC BY-SA).
