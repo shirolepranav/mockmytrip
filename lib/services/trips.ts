@@ -1,7 +1,8 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db/client";
 import { assertOwner } from "./ownership";
 import { hashSeed } from "@/lib/engine/seed";
+import { byIata } from "@/lib/engine/airports";
 
 /*
  * Trip services: CRUD + the in-progress trip draft (flight/hotel selection
@@ -116,6 +117,118 @@ export async function getStampForTrip(
   const stamp = rows[0];
   if (!stamp || stamp.userId !== userId) return null;
   return stamp;
+}
+
+/* ── Outbound flight context (Phase 6: countdown/hero facts; also feeds
+   Phase 7's packing climate lookup) ───────────────────────────────────── */
+
+export interface OutboundFlightContext {
+  bookingId: string;
+  originIata: string;
+  originTz: string;
+  originCity: string;
+  destIata: string;
+  destTz: string;
+  destCity: string;
+  destLat: number;
+  destLng: number;
+  departUtcMs: number;
+  arriveUtcMs: number;
+}
+
+/** The trip's earliest booked flight leg, resolved against the airport seed. */
+export async function getOutboundFlightContext(
+  userId: string,
+  tripId: string,
+): Promise<OutboundFlightContext | null> {
+  await getTrip(userId, tripId); // ownership check
+  const db = await getDb();
+  const rows = await db
+    .select({ bookingId: schema.bookings.id, flight: schema.flights })
+    .from(schema.bookings)
+    .innerJoin(schema.flights, eq(schema.bookings.flightId, schema.flights.id))
+    .where(
+      and(eq(schema.bookings.tripId, tripId), eq(schema.bookings.type, "flight")),
+    )
+    .orderBy(schema.flights.departAt)
+    .limit(1);
+  const row = rows[0];
+  if (!row) return null;
+  const { bookingId, flight } = row;
+
+  const origin = byIata(flight.originIata);
+  const dest = byIata(flight.destIata);
+  if (!origin || !dest) return null;
+
+  return {
+    bookingId,
+    originIata: flight.originIata,
+    originTz: origin.tz,
+    originCity: origin.city,
+    destIata: flight.destIata,
+    destTz: dest.tz,
+    destCity: dest.city,
+    destLat: dest.lat,
+    destLng: dest.lng,
+    departUtcMs: flight.departAt.getTime(),
+    arriveUtcMs: flight.arriveAt.getTime(),
+  };
+}
+
+/** Sum of `savedCents` across every booking on this trip (flight + hotel). */
+export async function getTripSavingsCents(
+  userId: string,
+  tripId: string,
+): Promise<number> {
+  await getTrip(userId, tripId); // ownership check
+  const db = await getDb();
+  const rows = await db
+    .select({ savedCents: schema.bookings.savedCents })
+    .from(schema.bookings)
+    .where(eq(schema.bookings.tripId, tripId));
+  return rows.reduce((sum, row) => sum + row.savedCents, 0);
+}
+
+/* ── Passport (Phase 6) ─────────────────────────────────────────────────  */
+
+export async function listStampsForUser(
+  userId: string,
+): Promise<PassportStampRow[]> {
+  const db = await getDb();
+  return db
+    .select()
+    .from(schema.passportStamps)
+    .where(eq(schema.passportStamps.userId, userId))
+    .orderBy(desc(schema.passportStamps.stampDate));
+}
+
+export interface PassportSummary {
+  countryCount: number;
+  cityCount: number;
+  /** Sum of every stamp's route distance, in km (component converts for display). */
+  totalDistanceKm: number;
+  savingsCents: number;
+}
+
+export async function getPassportSummary(userId: string): Promise<PassportSummary> {
+  const db = await getDb();
+  const stamps = await listStampsForUser(userId);
+  const [user] = await db
+    .select()
+    .from(schema.users)
+    .where(eq(schema.users.id, userId))
+    .limit(1);
+
+  const countries = new Set(stamps.map((stamp) => stamp.countryIso));
+  const cities = new Set(stamps.map((stamp) => `${stamp.countryIso}:${stamp.city}`));
+  const totalDistanceKm = stamps.reduce((sum, stamp) => sum + stamp.distanceKm, 0);
+
+  return {
+    countryCount: countries.size,
+    cityCount: cities.size,
+    totalDistanceKm,
+    savingsCents: user?.totalSavedCents ?? 0,
+  };
 }
 
 /* ── Trip draft (pre-checkout selection) ──────────────────────────────── */

@@ -74,3 +74,18 @@ export const sheetUpReduced: Variants = {
   visible: { opacity: 1, transition: { duration: 0 } },
   exit: { opacity: 0, transition: { duration: 0 } },
 };
+
+/** Split-flap digit flip (CountdownFlip, DS §8.4) — folds in/away on a 3D rotateX. */
+export const flipDigit: Variants = {
+  hidden: { rotateX: -90, opacity: 0 },
+  visible: {
+    rotateX: 0,
+    opacity: 1,
+    transition: { duration: durations.micro, ease: easings.outBack },
+  },
+  exit: {
+    rotateX: 90,
+    opacity: 0,
+    transition: { duration: durations.micro, ease: easings.standard },
+  },
+};

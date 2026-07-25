@@ -48,6 +48,11 @@ export function addDaysIso(iso: string, days: number): string {
   return date.toISOString().slice(0, 10);
 }
 
+/** km → statute miles, rounded — used for the passport's "miles dreamed" tally. */
+export function kmToMiles(km: number): number {
+  return Math.round(km * 0.621371);
+}
+
 export function formatDuration(totalMinutes: number): string {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
