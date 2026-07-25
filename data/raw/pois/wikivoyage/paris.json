@@ -1,0 +1,7 @@
+{
+ "parse": {
+  "wikitext": {
+   "*": "==See==\n{{see | name=Eiffel Tower | alt=La Tour Eiffel | lat=48.8584 | long=2.2945 | content=Paris's iconic iron lattice tower, built in 1889.}}\n{{see | name=Musée de Montmartre | lat=48.8863 | long=2.3407 | content=A charming museum dedicated to the artists' district of Montmartre.}}\n==Do==\n{{do | name=Seine River Cruise | lat=48.8583 | long=2.2944 | content=A boat tour along the Seine passing many Parisian landmarks.}}\n==Eat==\n{{eat | name=Le Petit Cler | lat=48.8571 | long=2.3059 | content=A cozy neighborhood bistro near the Eiffel Tower serving classic French fare.}}\n{{eat | name=Chez Marianne | lat=48.8570 | long=2.3590 | content=A beloved Marais deli known for falafel and Jewish-French cuisine.}}\n==Drink==\n{{drink | name=Café de Flore | lat=48.8540 | long=2.3325 | content=A historic literary café in Saint-Germain-des-Prés.}}\n"
+  }
+ }
+}

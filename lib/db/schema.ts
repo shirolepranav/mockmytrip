@@ -277,6 +277,22 @@ export const pushSubscriptions = pgTable(
   (table) => [uniqueIndex("push_endpoint_idx").on(table.endpoint)],
 );
 
+/* AI-suggestion daily quota (Phase 7 task 4) — one row per user per UTC day. */
+export const aiUsage = pgTable(
+  "ai_usage",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    usageDate: text("usage_date").notNull(), // 'YYYY-MM-DD', UTC calendar day
+    callCount: integer("call_count").notNull().default(0),
+  },
+  (table) => [
+    uniqueIndex("ai_usage_user_date_idx").on(table.userId, table.usageDate),
+  ],
+);
+
 export const moodCheckins = pgTable("mood_checkins", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id")

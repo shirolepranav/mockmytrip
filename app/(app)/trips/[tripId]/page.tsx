@@ -161,6 +161,24 @@ export default async function TripDetailPage({
         >
           Passport
         </Link>
+        <Link
+          href={`/trips/${trip.id}/itinerary`}
+          className="press-physical inline-flex min-h-11 items-center rounded-pill border border-line px-s5 font-semibold text-ink"
+        >
+          Itinerary
+        </Link>
+        <Link
+          href={`/trips/${trip.id}/packing`}
+          className="press-physical inline-flex min-h-11 items-center rounded-pill border border-line px-s5 font-semibold text-ink"
+        >
+          Packing
+        </Link>
+        <Link
+          href={`/trips/${trip.id}/explore`}
+          className="press-physical inline-flex min-h-11 items-center rounded-pill border border-line px-s5 font-semibold text-ink"
+        >
+          Explore {trip.destinationCity}
+        </Link>
       </div>
 
       <p className="text-sm text-ink-soft">

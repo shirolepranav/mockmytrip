@@ -201,6 +201,29 @@ export function IconMore(props: IconProps) {
   );
 }
 
+/** Checkmark — packing list ticks. */
+export function IconCheck(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M5 13l4 4L19 7" />
+    </svg>
+  );
+}
+
+/** Grip — drag handle (six dots). */
+export function IconGrip(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="9" cy="6" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="6" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="12" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="12" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="18" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="18" r="1.3" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 /** Map pin — hotel neighborhood / illustrative map. */
 export function IconMapPin(props: IconProps) {
   return (

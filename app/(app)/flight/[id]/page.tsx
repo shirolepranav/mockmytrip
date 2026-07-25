@@ -122,6 +122,13 @@ export default async function FlightDetailPage({
           cabin: query.cabin,
         }}
       />
+
+      <Link
+        href={`/explore/${encodeURIComponent(offer.destCity)}`}
+        className="press-physical inline-flex min-h-11 items-center self-start rounded-pill border border-line px-s5 font-semibold text-ink"
+      >
+        What&apos;s there? Explore {offer.destCity}
+      </Link>
     </section>
   );
 }

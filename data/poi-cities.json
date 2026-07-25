@@ -1,0 +1,200 @@
+[
+ {
+  "city": "Atlanta",
+  "isoCountry": "US",
+  "lat": 33.6367,
+  "lng": -84.428101
+ },
+ {
+  "city": "Chicago",
+  "isoCountry": "US",
+  "lat": 41.9786,
+  "lng": -87.9048
+ },
+ {
+  "city": "Dallas-Fort Worth",
+  "isoCountry": "US",
+  "lat": 32.896801,
+  "lng": -97.038002
+ },
+ {
+  "city": "Denver",
+  "isoCountry": "US",
+  "lat": 39.860027,
+  "lng": -104.673792
+ },
+ {
+  "city": "New York",
+  "isoCountry": "US",
+  "lat": 40.639447,
+  "lng": -73.779317
+ },
+ {
+  "city": "Los Angeles",
+  "isoCountry": "US",
+  "lat": 33.942501,
+  "lng": -118.407997
+ },
+ {
+  "city": "San Francisco",
+  "isoCountry": "US",
+  "lat": 37.619806,
+  "lng": -122.374821
+ },
+ {
+  "city": "Seattle",
+  "isoCountry": "US",
+  "lat": 47.447943,
+  "lng": -122.310276
+ },
+ {
+  "city": "Miami",
+  "isoCountry": "US",
+  "lat": 25.796011,
+  "lng": -80.289751
+ },
+ {
+  "city": "Toronto",
+  "isoCountry": "CA",
+  "lat": 43.675935,
+  "lng": -79.629421
+ },
+ {
+  "city": "London",
+  "isoCountry": "GB",
+  "lat": 51.470748,
+  "lng": -0.459909
+ },
+ {
+  "city": "Paris (Roissy-en-France, Val-d'Oise)",
+  "isoCountry": "FR",
+  "lat": 49.00896,
+  "lng": 2.554117
+ },
+ {
+  "city": "Amsterdam",
+  "isoCountry": "NL",
+  "lat": 52.308601,
+  "lng": 4.76389
+ },
+ {
+  "city": "Frankfurt am Main",
+  "isoCountry": "DE",
+  "lat": 50.026706,
+  "lng": 8.55835
+ },
+ {
+  "city": "Madrid",
+  "isoCountry": "ES",
+  "lat": 40.493407,
+  "lng": -3.572249
+ },
+ {
+  "city": "Istanbul",
+  "isoCountry": "TR",
+  "lat": 41.274874,
+  "lng": 28.732136
+ },
+ {
+  "city": "Dubai",
+  "isoCountry": "AE",
+  "lat": 25.24979,
+  "lng": 55.370992
+ },
+ {
+  "city": "Doha",
+  "isoCountry": "QA",
+  "lat": 25.273056,
+  "lng": 51.608056
+ },
+ {
+  "city": "Singapore",
+  "isoCountry": "SG",
+  "lat": 1.35019,
+  "lng": 103.994003
+ },
+ {
+  "city": "Tokyo",
+  "isoCountry": "JP",
+  "lat": 35.549678,
+  "lng": 139.786958
+ },
+ {
+  "city": "Seoul",
+  "isoCountry": "KR",
+  "lat": 37.469101,
+  "lng": 126.450996
+ },
+ {
+  "city": "Hong Kong",
+  "isoCountry": "HK",
+  "lat": 22.31184,
+  "lng": 113.914862
+ },
+ {
+  "city": "Bangkok",
+  "isoCountry": "TH",
+  "lat": 13.6811,
+  "lng": 100.747002
+ },
+ {
+  "city": "Sydney (Mascot)",
+  "isoCountry": "AU",
+  "lat": -33.946098,
+  "lng": 151.177002
+ },
+ {
+  "city": "São Paulo",
+  "isoCountry": "BR",
+  "lat": -23.431274,
+  "lng": -46.469954
+ },
+ {
+  "city": "Mexico City",
+  "isoCountry": "MX",
+  "lat": 19.435822,
+  "lng": -99.07033
+ },
+ {
+  "city": "Bogota",
+  "isoCountry": "CO",
+  "lat": 4.70159,
+  "lng": -74.1469
+ },
+ {
+  "city": "Johannesburg",
+  "isoCountry": "ZA",
+  "lat": -26.140081,
+  "lng": 28.246801
+ },
+ {
+  "city": "Cairo",
+  "isoCountry": "EG",
+  "lat": 30.111534,
+  "lng": 31.396694
+ },
+ {
+  "city": "New Delhi",
+  "isoCountry": "IN",
+  "lat": 28.55563,
+  "lng": 77.09519
+ },
+ {
+  "city": "Mumbai",
+  "isoCountry": "IN",
+  "lat": 19.088699,
+  "lng": 72.867897
+ },
+ {
+  "city": "Lisbon",
+  "isoCountry": "PT",
+  "lat": 38.7813,
+  "lng": -9.13592
+ },
+ {
+  "city": "Reykjavík",
+  "isoCountry": "IS",
+  "lat": 63.985001,
+  "lng": -22.6056
+ }
+]

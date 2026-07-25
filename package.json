@@ -16,9 +16,12 @@
     "test:a11y": "playwright test --grep @a11y",
     "lh": "lhci autorun",
     "db:migrate": "drizzle-kit migrate",
-    "db:seed": "tsx scripts/seed.mts"
+    "db:generate": "drizzle-kit generate",
+    "db:seed": "tsx scripts/seed.mts",
+    "db:seed-pois": "tsx scripts/seed-pois.mts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.115.0",
     "@electric-sql/pglite": "^0.5.4",
     "@gsap/react": "^2.1.2",
     "@neondatabase/serverless": "^1.1.0",

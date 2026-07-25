@@ -1,0 +1,601 @@
+{
+ "results": {
+  "bindings": [
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1000"
+    },
+    "itemLabel": {
+     "value": "Eiffel Tower"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.2945 48.8584)"
+    },
+    "sitelinks": {
+     "value": "220"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1001"
+    },
+    "itemLabel": {
+     "value": "Louvre Museum"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.3376 48.8606)"
+    },
+    "sitelinks": {
+     "value": "210"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1002"
+    },
+    "itemLabel": {
+     "value": "Notre-Dame Cathedral"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.3499 48.853)"
+    },
+    "sitelinks": {
+     "value": "200"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1003"
+    },
+    "itemLabel": {
+     "value": "Arc de Triomphe"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.295 48.8738)"
+    },
+    "sitelinks": {
+     "value": "180"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1004"
+    },
+    "itemLabel": {
+     "value": "Sacré-Cœur"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.3431 48.8867)"
+    },
+    "sitelinks": {
+     "value": "160"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1005"
+    },
+    "itemLabel": {
+     "value": "Palace of Versailles"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.1204 48.8049)"
+    },
+    "sitelinks": {
+     "value": "150"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1006"
+    },
+    "itemLabel": {
+     "value": "Musée dOrsay"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.3266 48.86)"
+    },
+    "sitelinks": {
+     "value": "140"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1007"
+    },
+    "itemLabel": {
+     "value": "Panthéon"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.3464 48.8462)"
+    },
+    "sitelinks": {
+     "value": "120"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1008"
+    },
+    "itemLabel": {
+     "value": "Centre Pompidou"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.3522 48.8607)"
+    },
+    "sitelinks": {
+     "value": "115"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1009"
+    },
+    "itemLabel": {
+     "value": "Sainte-Chapelle"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.345 48.8554)"
+    },
+    "sitelinks": {
+     "value": "110"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1010"
+    },
+    "itemLabel": {
+     "value": "Luxembourg Gardens"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.3372 48.8462)"
+    },
+    "sitelinks": {
+     "value": "105"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1011"
+    },
+    "itemLabel": {
+     "value": "Pont Alexandre III"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.3136 48.8639)"
+    },
+    "sitelinks": {
+     "value": "100"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1012"
+    },
+    "itemLabel": {
+     "value": "Palais Garnier"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.3316 48.8719)"
+    },
+    "sitelinks": {
+     "value": "98"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1013"
+    },
+    "itemLabel": {
+     "value": "Champs-Élysées"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.3079 48.8698)"
+    },
+    "sitelinks": {
+     "value": "96"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1014"
+    },
+    "itemLabel": {
+     "value": "Musée Rodin"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.3155 48.8555)"
+    },
+    "sitelinks": {
+     "value": "90"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1015"
+    },
+    "itemLabel": {
+     "value": "Place de la Concorde"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.3212 48.8656)"
+    },
+    "sitelinks": {
+     "value": "88"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1016"
+    },
+    "itemLabel": {
+     "value": "Musée de lOrangerie"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.3226 48.8638)"
+    },
+    "sitelinks": {
+     "value": "85"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1017"
+    },
+    "itemLabel": {
+     "value": "Grand Palais"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.3125 48.8661)"
+    },
+    "sitelinks": {
+     "value": "82"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1018"
+    },
+    "itemLabel": {
+     "value": "Petit Palais"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.3143 48.8656)"
+    },
+    "sitelinks": {
+     "value": "80"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1019"
+    },
+    "itemLabel": {
+     "value": "Catacombs of Paris"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.3324 48.8339)"
+    },
+    "sitelinks": {
+     "value": "78"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1020"
+    },
+    "itemLabel": {
+     "value": "Bois de Boulogne"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.25 48.8636)"
+    },
+    "sitelinks": {
+     "value": "70"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1021"
+    },
+    "itemLabel": {
+     "value": "Père Lachaise Cemetery"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.3936 48.8619)"
+    },
+    "sitelinks": {
+     "value": "68"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1022"
+    },
+    "itemLabel": {
+     "value": "Place des Vosges"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.3654 48.8555)"
+    },
+    "sitelinks": {
+     "value": "65"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1023"
+    },
+    "itemLabel": {
+     "value": "Musée de lArmée"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.3126 48.8554)"
+    },
+    "sitelinks": {
+     "value": "60"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1024"
+    },
+    "itemLabel": {
+     "value": "Conciergerie"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.3454 48.8555)"
+    },
+    "sitelinks": {
+     "value": "58"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1025"
+    },
+    "itemLabel": {
+     "value": "Musée Picasso"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.3625 48.8598)"
+    },
+    "sitelinks": {
+     "value": "55"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1026"
+    },
+    "itemLabel": {
+     "value": "Institut du Monde Arabe"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.3568 48.8459)"
+    },
+    "sitelinks": {
+     "value": "50"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1027"
+    },
+    "itemLabel": {
+     "value": "Jardin des Plantes"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.3593 48.844)"
+    },
+    "sitelinks": {
+     "value": "48"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1028"
+    },
+    "itemLabel": {
+     "value": "La Défense Arch"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.236 48.8918)"
+    },
+    "sitelinks": {
+     "value": "45"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1029"
+    },
+    "itemLabel": {
+     "value": "Trocadéro Gardens"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.2877 48.8624)"
+    },
+    "sitelinks": {
+     "value": "44"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1030"
+    },
+    "itemLabel": {
+     "value": "Canal Saint-Martin"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.366 48.8709)"
+    },
+    "sitelinks": {
+     "value": "40"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1031"
+    },
+    "itemLabel": {
+     "value": "Montmartre Cemetery"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.3317 48.8878)"
+    },
+    "sitelinks": {
+     "value": "38"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1032"
+    },
+    "itemLabel": {
+     "value": "Musée Marmottan Monet"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.2648 48.8586)"
+    },
+    "sitelinks": {
+     "value": "35"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1033"
+    },
+    "itemLabel": {
+     "value": "Place Vendôme"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.3293 48.8683)"
+    },
+    "sitelinks": {
+     "value": "34"
+    }
+   },
+   {
+    "item": {
+     "value": "http://www.wikidata.org/entity/Q1034"
+    },
+    "itemLabel": {
+     "value": "Shakespeare and Company"
+    },
+    "itemDescription": {
+     "value": "Landmark in Paris, France"
+    },
+    "coord": {
+     "value": "Point(2.347 48.8523)"
+    },
+    "sitelinks": {
+     "value": "30"
+    }
+   }
+  ]
+ }
+}

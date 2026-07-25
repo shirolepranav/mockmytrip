@@ -1,0 +1,124 @@
+{
+ "elements": [
+  {
+   "type": "node",
+   "id": 900000,
+   "lat": 48.86,
+   "lon": 2.3266,
+   "tags": {
+    "name": "Musée dOrsay",
+    "tourism": "museum",
+    "addr:housenumber": "10",
+    "addr:street": "Rue de Test"
+   }
+  },
+  {
+   "type": "node",
+   "id": 900001,
+   "lat": 48.8517,
+   "lon": 2.3389,
+   "tags": {
+    "name": "Le Comptoir du Relais",
+    "amenity": "restaurant",
+    "addr:housenumber": "11",
+    "addr:street": "Rue de Test"
+   }
+  },
+  {
+   "type": "node",
+   "id": 900002,
+   "lat": 48.8651,
+   "lon": 2.3285,
+   "tags": {
+    "name": "Angelina",
+    "amenity": "cafe",
+    "addr:housenumber": "12",
+    "addr:street": "Rue de Test"
+   }
+  },
+  {
+   "type": "node",
+   "id": 900003,
+   "lat": 48.8622,
+   "lon": 2.3625,
+   "tags": {
+    "name": "Breizh Café",
+    "amenity": "restaurant",
+    "addr:housenumber": "13",
+    "addr:street": "Rue de Test"
+   }
+  },
+  {
+   "type": "node",
+   "id": 900004,
+   "lat": 48.8604,
+   "lon": 2.3593,
+   "tags": {
+    "name": "Musée de la Chasse et de la Nature",
+    "tourism": "museum",
+    "addr:housenumber": "14",
+    "addr:street": "Rue de Test"
+   }
+  },
+  {
+   "type": "node",
+   "id": 900005,
+   "lat": 48.8799,
+   "lon": 2.3822,
+   "tags": {
+    "name": "Parc des Buttes-Chaumont",
+    "leisure": "park",
+    "addr:housenumber": "15",
+    "addr:street": "Rue de Test"
+   }
+  },
+  {
+   "type": "node",
+   "id": 900006,
+   "lat": 48.8721,
+   "lon": 2.3833,
+   "tags": {
+    "name": "Belvédère du Parc de Belleville",
+    "tourism": "viewpoint",
+    "addr:housenumber": "16",
+    "addr:street": "Rue de Test"
+   }
+  },
+  {
+   "type": "node",
+   "id": 900007,
+   "lat": 48.871,
+   "lon": 2.363,
+   "tags": {
+    "name": "Du Pain et des Idées",
+    "amenity": "cafe",
+    "addr:housenumber": "17",
+    "addr:street": "Rue de Test"
+   }
+  },
+  {
+   "type": "node",
+   "id": 900008,
+   "lat": 48.8534,
+   "lon": 2.3789,
+   "tags": {
+    "name": "Bistrot Paul Bert",
+    "amenity": "restaurant",
+    "addr:housenumber": "18",
+    "addr:street": "Rue de Test"
+   }
+  },
+  {
+   "type": "node",
+   "id": 900009,
+   "lat": 48.8798,
+   "lon": 2.3086,
+   "tags": {
+    "name": "Parc Monceau",
+    "leisure": "park",
+    "addr:housenumber": "19",
+    "addr:street": "Rue de Test"
+   }
+  }
+ ]
+}

@@ -87,6 +87,10 @@ export async function exportData(userId: string) {
     .select()
     .from(schema.tripDrafts)
     .where(eq(schema.tripDrafts.userId, userId));
+  const aiUsage = await db
+    .select()
+    .from(schema.aiUsage)
+    .where(eq(schema.aiUsage.userId, userId));
 
   const tripIds = userTrips.map((trip) => trip.id);
   const itinerary = [] as (typeof schema.itineraryItems.$inferSelect)[];
@@ -116,6 +120,7 @@ export async function exportData(userId: string) {
     itineraryItems: itinerary,
     packingItems: packing,
     drafts,
+    aiUsage,
   };
 }
 
