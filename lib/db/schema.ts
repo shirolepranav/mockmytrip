@@ -129,6 +129,10 @@ export const trips = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+    /** Cursor for the collaborator-digest push (Phase 9 task 7). */
+    lastCollaboratorDigestAt: timestamp("last_collaborator_digest_at", {
+      withTimezone: true,
+    }),
   },
   (table) => [index("trips_user_status_idx").on(table.userId, table.status)],
 );
@@ -239,8 +243,109 @@ export const itineraryItems = pgTable(
       .default("activity"),
     poiId: uuid("poi_id").references(() => pois.id, { onDelete: "set null" }),
     sortOrder: integer("sort_order").notNull().default(0),
+    /**
+     * Collaborator attribution (Phase 9). `set null`, not cascade — deleting
+     * a collaborator's account must not delete content they added to
+     * someone else's trip, only anonymize its "added by" chip.
+     */
+    createdByUserId: uuid("created_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    /** Feeds the owner's batched collaborator-digest cursor (Phase 9 task 7). */
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [index("itinerary_trip_idx").on(table.tripId)],
+);
+
+/*
+ * Sharing & collaboration (Phase 9, TECH_SPEC §8b). A share link is
+ * token-gated (no session required to view); a collaborator row is what
+ * actually grants a signed-in user edit access via lib/services/access.ts.
+ */
+export const tripShares = pgTable(
+  "trip_shares",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tripId: uuid("trip_id")
+      .notNull()
+      .references(() => trips.id, { onDelete: "cascade" }),
+    ownerUserId: uuid("owner_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    token: text("token").notNull(),
+    permission: text("permission", { enum: ["view", "edit"] })
+      .notNull()
+      .default("view"),
+    isRevoked: boolean("is_revoked").notNull().default(false),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    viewCount: integer("view_count").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("trip_shares_token_idx").on(table.token),
+    index("trip_shares_owner_idx").on(table.ownerUserId),
+    index("trip_shares_trip_idx").on(table.tripId),
+  ],
+);
+
+export const tripCollaborators = pgTable(
+  "trip_collaborators",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tripId: uuid("trip_id")
+      .notNull()
+      .references(() => trips.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: text("role", { enum: ["viewer", "editor"] })
+      .notNull()
+      .default("viewer"),
+    joinedViaShareId: uuid("joined_via_share_id").references(
+      () => tripShares.id,
+      { onDelete: "set null" },
+    ),
+    notifyOptIn: boolean("notify_opt_in").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("trip_collaborators_trip_user_idx").on(
+      table.tripId,
+      table.userId,
+    ),
+    index("trip_collaborators_user_idx").on(table.userId),
+  ],
+);
+
+/*
+ * IP-abuse guard + view-count dedup for /s/[token] lookups (Phase 9 task 5).
+ * Not personal content — deliberately excluded from users.exportData().
+ * ipHash is a salted hash, never the raw address.
+ */
+export const shareLookupAttempts = pgTable(
+  "share_lookup_attempts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    token: text("token").notNull(),
+    ipHash: text("ip_hash").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("share_lookup_ip_idx").on(table.ipHash, table.createdAt),
+    index("share_lookup_token_ip_idx").on(
+      table.token,
+      table.ipHash,
+      table.createdAt,
+    ),
+  ],
 );
 
 export const packingItems = pgTable(

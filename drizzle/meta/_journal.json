@@ -15,6 +15,20 @@
       "when": 1784942629735,
       "tag": "0001_workable_iron_lad",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785103012484,
+      "tag": "0002_tan_ted_forrester",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1785103960814,
+      "tag": "0003_hot_tenebrous",
+      "breakpoints": true
     }
   ]
 }

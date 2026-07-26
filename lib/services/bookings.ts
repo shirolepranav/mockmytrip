@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import { getDb, getBookingDb, schema } from "@/lib/db/client";
+import { isUniqueViolation } from "@/lib/db/pg-errors";
 import { flightOfferViewSchema, type FlightOfferView } from "@/lib/offer-view";
 import { hotelOfferViewSchema, type HotelOfferView } from "@/lib/hotel-offer-view";
 import { generateTripTitle } from "@/lib/trip-summary";
@@ -78,22 +79,6 @@ async function findByIdempotencyKey(groupKey: string) {
     .where(eq(schema.bookings.idempotencyKey, groupKey))
     .limit(1);
   return rows[0] ?? null;
-}
-
-/**
- * Postgres unique-violation (23505) detection. Drivers/ORMs sometimes wrap
- * the underlying pg error in an outer Error (e.g. a query-failed wrapper
- * with the real error as `.cause`), so this checks both the error itself
- * and one level of `.cause`.
- */
-function isUniqueViolation(error: unknown): boolean {
-  const codeOf = (value: unknown): unknown =>
-    typeof value === "object" && value !== null && "code" in value
-      ? (value as { code?: unknown }).code
-      : undefined;
-  if (codeOf(error) === "23505") return true;
-  const cause = error instanceof Error ? error.cause : undefined;
-  return codeOf(cause) === "23505";
 }
 
 /** Parse the draft the same way lib/trip-summary.ts does. */
