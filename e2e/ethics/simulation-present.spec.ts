@@ -70,3 +70,23 @@ test.describe("@phase5 @ethics SIMULATION always present", () => {
     expect(result.text).toContain("SIMULATION");
   });
 });
+
+test.describe("@phase8 @ethics SIMULATION always present (Phase 8 screens)", () => {
+  test("the About/Ethics page shows a SIMULATION label", async ({ page }) => {
+    await page.goto("/about");
+    await expect(page.getByTestId("simulation-badge")).toBeVisible();
+  });
+
+  test("the Trip Memories page shows a SIMULATION label (locked state)", async ({
+    page,
+  }) => {
+    await arriveAtCheckout(page);
+    await page.getByTestId("confirm-booking-submit").click();
+    await page.waitForURL(/\/trip\/confirmation\//);
+
+    const exported = await page.request.get("/api/export");
+    const trip = (await exported.json()).trips[0].id as string;
+    await page.goto(`/trips/${trip}/memories`);
+    await expect(page.getByTestId("simulation-badge")).toBeVisible();
+  });
+});

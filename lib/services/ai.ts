@@ -125,6 +125,59 @@ function buildUserPrompt(city: string, days: number, interests?: string[]): stri
   return `City: ${city}. Trip length: ${days} day${days === 1 ? "" : "s"}. ${interestLine}`.trim();
 }
 
+/* ── Trip Memories (Phase 8 task 5) ───────────────────────────────────────
+   Same quota/fallback machinery as suggestItinerary above, and the same
+   shared aiUsage pool (one daily budget per user, not per feature) — this
+   is a genuinely optional flourish on the memories page, never a
+   dependency: the manual reflective-note field always works regardless. */
+
+export const memorySuggestionSchema = z.object({
+  paragraph: z.string().min(1).max(600),
+});
+export type MemorySuggestion = z.infer<typeof memorySuggestionSchema>;
+
+const MEMORY_SYSTEM_PROMPT = `You are a warm, reflective travel-journal assistant for a trip-planning SIMULATION app. Nothing described is a real trip — no bookings exist.
+Given a destination city and trip length, write a short, wistful first-person recap paragraph (2-4 sentences) imagining how the trip might have felt, as a keepsake for the user's "Trip Memories" page.
+Respond with ONLY a single JSON object, no markdown fences, no commentary, matching exactly this shape:
+{"paragraph":"..."}
+Never claim the trip was real or imply any booking, payment, or itinerary detail actually happened.`;
+
+function buildMemoryPrompt(city: string, days: number): string {
+  return `City: ${city}. Trip length: ${days} day${days === 1 ? "" : "s"}.`;
+}
+
+/**
+ * Proposes a short reflective recap paragraph for a completed (memory-
+ * status) trip. Ownership-checked; quota-checked before any provider call;
+ * strict Zod parse of the result. On ANY failure this throws
+ * `AiUnavailableError` — the manual note field on the Memories page is
+ * entirely unaffected either way.
+ */
+export async function suggestMemory(
+  userId: string,
+  tripId: string,
+  city: string,
+  days: number,
+): Promise<MemorySuggestion> {
+  await getTrip(userId, tripId); // ownership check
+  await checkAndConsumeQuota(userId);
+
+  let raw: string;
+  try {
+    raw = await callLlmProvider({
+      system: MEMORY_SYSTEM_PROMPT,
+      user: buildMemoryPrompt(city, days),
+    });
+  } catch (error) {
+    if (error instanceof AiUnavailableError) throw error;
+    throw new AiUnavailableError();
+  }
+
+  const parsed = memorySuggestionSchema.safeParse(safeJsonParse(raw));
+  if (!parsed.success) throw new AiUnavailableError();
+  return parsed.data;
+}
+
 /**
  * Proposes 3-6 itinerary items for a trip. Ownership-checked; quota-checked
  * before any provider call; strict Zod parse of the result. On ANY failure

@@ -15,6 +15,10 @@ const eslintConfig = defineConfig([
     "test-results/**",
     "playwright-report/**",
     "next-env.d.ts",
+    // Serwist-generated service worker (built from app/sw.ts on every
+    // production build) — minified output, never hand-edited.
+    "public/sw.js",
+    "public/swe-worker-*.js",
   ]),
 ]);
 

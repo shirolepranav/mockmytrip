@@ -10,7 +10,6 @@ import {
 import { AiSuggestButton, type AiSuggestedItem } from "@/components/ai-suggest-sheet";
 import { ItineraryDayColumn } from "@/components/itinerary-day-column";
 import type { ItineraryEditPatch } from "@/components/itinerary-item-row";
-import { OfflineBanner } from "@/components/offline-banner";
 import { Sheet } from "@/components/sheet";
 import { UndoToast } from "@/components/undo-toast";
 import { useOfflineQueue } from "@/lib/offline/use-offline-queue";
@@ -290,7 +289,6 @@ export function ItineraryBoard({
 
   return (
     <div className="flex flex-col gap-s6">
-      <OfflineBanner visible={isOffline} />
       <AiSuggestButton
         tripId={tripId}
         city={destinationCity}

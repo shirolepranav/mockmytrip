@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Toast } from "@/components/toast";
+import { markFirstBoardingPass } from "@/lib/pwa/install-prompt-state";
 
 /*
  * Confirmation-page side effects: scrub the one-time `justBooked`/
@@ -10,6 +11,11 @@ import { Toast } from "@/components/toast";
  * never replays the reveal or re-shows the email toast), and show the
  * email-status toast when relevant. A small client leaf so the page itself
  * can stay a Server Component.
+ *
+ * This page is also the "first boarding pass" moment the install prompt
+ * (Phase 8 task 3, WF §21) waits for — marking it here, idempotently, on
+ * every visit (not just a fresh booking) means a guest who saved their
+ * pass and comes back to view it later still counts.
  */
 export function ConfirmationEffects({
   emailStatus,
@@ -20,6 +26,7 @@ export function ConfirmationEffects({
   const pathname = usePathname();
 
   useEffect(() => {
+    markFirstBoardingPass();
     router.replace(pathname);
     // Runs once on mount only — scrubbing is a one-time action, not tied to
     // route-object identity changes.

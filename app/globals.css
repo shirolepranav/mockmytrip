@@ -92,6 +92,18 @@
   --horizon: #3fb0ae;
   --line: #2c4552;
   --shadow-ink: 0, 0, 0;
+  /*
+   * The light-theme --alert/--stamp-red/--sunset-deep values (used
+   * verbatim as text color on the dark surfaces above) fall to ~2.6–3.3:1
+   * contrast — below WCAG AA's 4.5:1 minimum for normal text (caught by
+   * axe once Phase 8 actually shipped a reachable theme toggle, e.g. the
+   * bottom tab bar's active-state text). Lightened here to pass against
+   * both dark backgrounds; unchanged in light mode. --sunset itself stays
+   * unchanged per docs/DESIGN_SYSTEM.md §3.
+   */
+  --alert: #ef8a7f;
+  --stamp-red: #ef8a7f;
+  --sunset-deep: #f5824f;
 }
 
 /*

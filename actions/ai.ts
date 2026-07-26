@@ -6,6 +6,7 @@ import {
   AiQuotaExceededError,
   AiUnavailableError,
   suggestItinerary,
+  suggestMemory,
   type ItinerarySuggestion,
 } from "@/lib/services/ai";
 import { OwnershipError } from "@/lib/services/ownership";
@@ -45,6 +46,39 @@ export async function suggestItineraryAction(
       parsed.interests,
     );
     return { status: "ok", items: suggestion.items };
+  } catch (error) {
+    if (error instanceof AiQuotaExceededError) {
+      return { status: "quota", message: QUOTA_MESSAGE };
+    }
+    if (error instanceof AiUnavailableError || error instanceof OwnershipError) {
+      return { status: "unavailable", message: error.message };
+    }
+    throw error;
+  }
+}
+
+const memoryInputSchema = z.object({
+  tripId: z.string().uuid(),
+  city: z.string().trim().min(1).max(120),
+  days: z.number().int().min(1).max(60),
+});
+
+export interface SuggestMemoryResult {
+  status: "ok" | "quota" | "unavailable" | "signed_out";
+  paragraph?: string;
+  message?: string;
+}
+
+export async function suggestMemoryAction(
+  input: z.infer<typeof memoryInputSchema>,
+): Promise<SuggestMemoryResult> {
+  const parsed = memoryInputSchema.parse(input);
+  const userId = await readSessionUserId();
+  if (!userId) return { status: "signed_out" };
+
+  try {
+    const suggestion = await suggestMemory(userId, parsed.tripId, parsed.city, parsed.days);
+    return { status: "ok", paragraph: suggestion.paragraph };
   } catch (error) {
     if (error instanceof AiQuotaExceededError) {
       return { status: "quota", message: QUOTA_MESSAGE };

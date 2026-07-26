@@ -25,7 +25,7 @@ vi.mock("@anthropic-ai/sdk", () => ({
 import { getDb } from "@/lib/db/client";
 import { createGuest } from "@/lib/services/users";
 import { createTrip } from "@/lib/services/trips";
-import { AiQuotaExceededError, AiUnavailableError, suggestItinerary } from "./ai";
+import { AiQuotaExceededError, AiUnavailableError, suggestItinerary, suggestMemory } from "./ai";
 
 beforeAll(async () => {
   await getDb(); // triggers embedded migration
@@ -127,5 +127,52 @@ describe("@phase7 suggestItinerary", () => {
     );
     expect(createMock).not.toHaveBeenCalled();
     process.env.LLM_API_KEY = original;
+  });
+});
+
+describe("@phase8 suggestMemory", () => {
+  it("happy path: a reflective paragraph is proposed", async () => {
+    const user = await createGuest();
+    const trip = await makeTrip(user.id);
+    createMock.mockResolvedValueOnce(
+      textResponse({ paragraph: "The Lisbon light, imagined, still lingers." }),
+    );
+
+    const result = await suggestMemory(user.id, trip.id, "Lisbon", 4);
+    expect(result.paragraph.length).toBeGreaterThan(0);
+    expect(createMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("malformed JSON is a graceful AiUnavailableError, not a crash", async () => {
+    const user = await createGuest();
+    const trip = await makeTrip(user.id);
+    createMock.mockResolvedValueOnce({
+      content: [{ type: "text", text: "not json at all" }],
+    });
+
+    await expect(suggestMemory(user.id, trip.id, "Lisbon", 4)).rejects.toThrow(
+      AiUnavailableError,
+    );
+  });
+
+  it("shares the same daily quota pool as suggestItinerary", async () => {
+    const user = await createGuest();
+    const trip = await makeTrip(user.id);
+    createMock.mockResolvedValue(
+      textResponse({
+        items: [
+          { dayIndex: 0, title: "A", category: "sight" },
+          { dayIndex: 0, title: "B", category: "food" },
+          { dayIndex: 0, title: "C", category: "activity" },
+        ],
+      }),
+    );
+    for (let i = 0; i < 5; i++) {
+      await suggestItinerary(user.id, trip.id, "Lisbon", 4);
+    }
+    createMock.mockResolvedValueOnce(textResponse({ paragraph: "Never reached." }));
+    await expect(suggestMemory(user.id, trip.id, "Lisbon", 4)).rejects.toThrow(
+      AiQuotaExceededError,
+    );
   });
 });

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AirportAutocomplete } from "@/components/airport-autocomplete";
 import { IconMinus, IconPlus, IconSwap } from "@/components/icons";
 import type { SlimAirport } from "@/lib/airports-client";
+import { useIsOffline } from "@/lib/offline/use-offline-queue";
 import {
   validateFlightSearchForm,
   type FlightSearchFormErrors,
@@ -39,6 +40,7 @@ export function FlightSearchForm({
   }>;
 }) {
   const router = useRouter();
+  const isOffline = useIsOffline();
   const [origin, setOrigin] = useState<SlimAirport | null>(null);
   const [destination, setDestination] = useState<SlimAirport | null>(null);
   const [roundTrip, setRoundTrip] = useState(Boolean(initial?.returnDate));
@@ -244,10 +246,22 @@ export function FlightSearchForm({
         </div>
       </fieldset>
 
+      {isOffline ? (
+        <p
+          role="status"
+          data-testid="search-offline-message"
+          className="rounded-card border border-line bg-paper2 px-s4 py-s3 text-sm text-ink-soft"
+        >
+          Dreams need a connection — search comes back as soon as you&apos;re
+          back online.
+        </p>
+      ) : null}
+
       <button
         type="submit"
+        disabled={isOffline}
         data-testid="search-flights-submit"
-        className="press-physical mt-s2 inline-flex min-h-13 items-center justify-center rounded-pill bg-sunset px-s6 text-lg font-semibold text-ink shadow-e2 hover:bg-sunset-deep hover:text-paper2"
+        className="press-physical mt-s2 inline-flex min-h-13 items-center justify-center rounded-pill bg-sunset px-s6 text-lg font-semibold text-ink shadow-e2 hover:bg-sunset-deep hover:text-paper2 disabled:opacity-50"
       >
         Search flights
       </button>

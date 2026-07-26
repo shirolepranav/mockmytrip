@@ -12,7 +12,6 @@ import {
 } from "@/actions/packing";
 import type { PackingItemRow } from "@/lib/services/packing";
 import { IconCheck, IconClose } from "@/components/icons";
-import { OfflineBanner } from "@/components/offline-banner";
 import { useOfflineQueue } from "@/lib/offline/use-offline-queue";
 import type { QueuedMutation } from "@/lib/offline/mutation-queue";
 
@@ -162,7 +161,6 @@ export function PackingList({
   if (items.length === 0) {
     return (
       <div className="ticket-surface flex flex-col items-center gap-s4 p-s6 text-center">
-        <OfflineBanner visible={isOffline} />
         <p className="font-display text-xl">Nothing packed yet</p>
         <p className="max-w-prose text-sm text-ink-soft">
           We can start you off with a list tailored to your destination and
@@ -183,7 +181,6 @@ export function PackingList({
 
   return (
     <div className="flex flex-col gap-s5">
-      <OfflineBanner visible={isOffline} />
       <div className="ticket-surface flex flex-col gap-s3 p-s4">
         <div className="flex items-center justify-between text-sm font-semibold">
           <span data-testid="packing-progress-label">

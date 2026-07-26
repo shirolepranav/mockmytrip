@@ -326,15 +326,17 @@
 ### Exit criteria
 - ✅ All `@phase7` green; ✅ AI is strictly optional (all failures leave manual flows intact); ✅ quota enforced; ✅ POIs real-data-only with attribution; ✅ export usable for real trips.
 
----## PHASE 8 — PWA, Offline, Web Push & Trip Memories
+---
+
+## PHASE 8 — PWA, Offline, Web Push & Trip Memories
 **Objective:** installable app with offline reading, opt-in push for countdown milestones, and the memories/afterglow loop.
 **Prerequisites:** Phase 7.
 **Estimate:** 3–4 days.
 
 ### Development tasks
-1. Enable Serwist per TS §8: `app/sw.ts` (precache shell + slim airports JSON; runtime `defaultCache`; `/~offline` navigation fallback), `app/manifest.ts` (name, standalone, brand `theme_color`/`background_color`, maskable 192/512 icons), disable SW in dev; guard registration with native-platform check (TS §12.5).
-2. Offline behavior per WF §20: offline banner in shell; My Trips + trip detail readable from cache/IndexedDB; search shows "dreams need a connection" state; Phase-7 mutation queue flushes on reconnect.
-3. Contextual install prompt: only after first boarding pass; dismissible; never nags again for 30 days (WF §20).
+1. Enable Serwist per TS §8: `app/sw.ts` (precache shell + slim airports JSON; runtime `defaultCache`; `/offline.html` navigation fallback — a plain static file rather than an app route, since Serwist's precache-fallback plugin can only serve a URL that was itself precached at build time, and only `public/` files are swept into that manifest), `app/manifest.ts` (name, standalone, brand `theme_color`/`background_color`, maskable 192/512 icons), disable SW in dev; guard registration with native-platform check (TS §12.5).
+2. Offline behavior per WF §21: offline banner in shell; My Trips + trip detail readable from cache/IndexedDB; search shows "dreams need a connection" state; Phase-7 mutation queue flushes on reconnect.
+3. Contextual install prompt: only after first boarding pass; dismissible; never nags again for 30 days (WF §21).
 4. Web push: VAPID keys; `push_subscriptions` table wiring; `api/push/subscribe` (opt-in from Settings/trip detail only); Vercel Cron → `api/push/send` computing milestone sends (30d/7d/1d/departure-day + memories-unlocked), frequency-capped (max 1/day/user), copy warm not naggy.
 5. Trip Memories `trips/[tripId]/memories/page.tsx` per WF §17: locked state pre-end-date (shows unlock date); unlocked recap — postcard (destination art + stamp + route + savings), reflective note field (local), optional LLM memory paragraph (same quota/fallback as Phase 7); share postcard via Web Share API (opt-in); graceful in-session unlock if end date passes while open.
 6. Settings completion per WF §18: reduced-motion toggle (wired to MotionProvider override), theme switch (light/night flight), notifications opt-in + frequency, mood check-in toggle, export/delete (from Phase 2), About link.

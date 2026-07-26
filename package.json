@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "mobile": "NEXT_PUBLIC_IS_NATIVE=true next build",
     "start": "next start",
     "lint": "eslint",
@@ -40,6 +40,7 @@
     "resend": "^6.17.2",
     "serwist": "^9.5.11",
     "tz-lookup": "^6.1.25",
+    "web-push": "^3.6.7",
     "ws": "^8.21.1",
     "zod": "^4.4.3"
   },
@@ -60,6 +61,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/tz-lookup": "^6.1.2",
+    "@types/web-push": "^3.6.4",
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^6.0.3",
     "@vitest/coverage-v8": "^4.1.10",

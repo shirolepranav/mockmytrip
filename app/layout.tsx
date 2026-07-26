@@ -4,6 +4,8 @@ import { fontVariables } from "@/lib/fonts";
 import { colors } from "@/lib/design/colors";
 import { MotionProvider } from "@/lib/motion/reduced-motion";
 import { ThemeProvider } from "@/components/theme-provider";
+import { SwRegister } from "@/components/sw-register";
+import { InstallPrompt } from "@/components/install-prompt";
 
 export const metadata: Metadata = {
   title: {
@@ -34,7 +36,11 @@ export default function RootLayout({
           Skip to content
         </a>
         <ThemeProvider>
-          <MotionProvider>{children}</MotionProvider>
+          <MotionProvider>
+            {children}
+            <SwRegister />
+            <InstallPrompt />
+          </MotionProvider>
         </ThemeProvider>
       </body>
     </html>

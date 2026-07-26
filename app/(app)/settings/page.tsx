@@ -1,10 +1,15 @@
+import Link from "next/link";
+import { readSessionUserId } from "@/lib/auth/session";
+import { getUser } from "@/lib/services/users";
 import { DeleteAllButton } from "@/components/delete-all-button";
 import { MagicLinkForm } from "@/components/magic-link-form";
+import { SettingsAppearance } from "@/components/settings-appearance";
+import { SettingsNotifications } from "@/components/settings-notifications";
 
 /*
- * Settings (WF §18). Phase 2 ships the data-rights core: account upgrade
- * (magic link), export, hard delete. Motion/theme/notification toggles
- * complete in Phase 8.
+ * Settings (WF §18). Phase 2 shipped the data-rights core (account
+ * upgrade, export, hard delete); Phase 8 completes it with the
+ * appearance and notifications sections plus the About/Ethics link.
  */
 export default async function SettingsPage({
   searchParams,
@@ -12,6 +17,8 @@ export default async function SettingsPage({
   searchParams: Promise<{ auth?: string }>;
 }) {
   const { auth } = await searchParams;
+  const userId = await readSessionUserId();
+  const user = userId ? await getUser(userId) : null;
 
   return (
     <section className="flex max-w-xl flex-col items-start gap-s6">
@@ -32,6 +39,24 @@ export default async function SettingsPage({
       </div>
 
       <div className="ticket-surface w-full p-s5">
+        <h2 className="font-display text-lg">Appearance</h2>
+        <div className="mt-s4">
+          <SettingsAppearance />
+        </div>
+      </div>
+
+      <div className="ticket-surface w-full p-s5">
+        <h2 className="font-display text-lg">Notifications</h2>
+        <div className="mt-s4">
+          <SettingsNotifications
+            vapidPublicKey={process.env.VAPID_PUBLIC_KEY}
+            initialOptIn={user?.prefsJson.notifOptIn ?? false}
+            initialMoodCheckins={user?.prefsJson.moodCheckins ?? false}
+          />
+        </div>
+      </div>
+
+      <div className="ticket-surface w-full p-s5">
         <h2 className="font-display text-lg">Your data</h2>
         <p className="mt-s2 text-sm text-ink-soft">
           Wanderlost stores only your pretend trips and (optionally) your
@@ -49,10 +74,12 @@ export default async function SettingsPage({
         </div>
       </div>
 
-      <p className="text-sm text-ink-soft">
-        Reduced motion, night-flight theme, and notification preferences land
-        in Phase 8.
-      </p>
+      <Link
+        href="/about"
+        className="press-physical inline-flex min-h-11 items-center rounded-pill border border-line px-s5 font-semibold text-ink"
+      >
+        About &amp; Ethics
+      </Link>
     </section>
   );
 }

@@ -113,13 +113,19 @@ export default async function TripDetailPage({
       {status === "memory" ? (
         <div
           data-testid="trip-memory"
-          className="ticket-surface flex flex-col items-center gap-s2 p-s5 text-center"
+          className="ticket-surface flex flex-col items-center gap-s3 p-s5 text-center"
         >
           <p className="font-display text-xl">This trip is complete</p>
           <p className="text-sm text-ink-soft">
-            A full Memories recap lands in a future update — for now, the
-            passport stamp lives on.
+            Your Trip Memories are ready — the recap, the postcard, and the
+            passport stamp all live there now.
           </p>
+          <Link
+            href={`/trips/${trip.id}/memories`}
+            className="press-physical inline-flex min-h-11 items-center rounded-pill bg-ink px-s5 font-semibold text-paper2"
+          >
+            View Trip Memories
+          </Link>
         </div>
       ) : null}
 
