@@ -62,13 +62,14 @@ const updateSchema = z.object({
   category: categorySchema.optional(),
 });
 
+/** Returns false when the caller has no (or no longer has) edit access — see components/itinerary-board.tsx's null/false handling (QA 9.4). */
 export async function updateItineraryItemAction(
   input: z.infer<typeof updateSchema>,
-): Promise<void> {
+): Promise<boolean> {
   const parsed = updateSchema.parse(input);
   const userId = await readSessionUserId();
-  if (!userId) return;
-  await guardOwnership(() =>
+  if (!userId) return false;
+  const result = await guardOwnership(() =>
     updateItineraryItem(userId, parsed.itemId, {
       time: parsed.time,
       title: parsed.title,
@@ -77,6 +78,7 @@ export async function updateItineraryItemAction(
     }),
   );
   revalidatePath(`/trips/${parsed.tripId}/itinerary`);
+  return result !== null;
 }
 
 const deleteSchema = z.object({
@@ -84,14 +86,16 @@ const deleteSchema = z.object({
   tripId: z.string().uuid(),
 });
 
+/** Returns false when the caller has no (or no longer has) edit access. */
 export async function deleteItineraryItemAction(
   input: z.infer<typeof deleteSchema>,
-): Promise<void> {
+): Promise<boolean> {
   const parsed = deleteSchema.parse(input);
   const userId = await readSessionUserId();
-  if (!userId) return;
-  await guardOwnership(() => deleteItineraryItem(userId, parsed.itemId));
+  if (!userId) return false;
+  const result = await guardOwnership(() => deleteItineraryItem(userId, parsed.itemId));
   revalidatePath(`/trips/${parsed.tripId}/itinerary`);
+  return result !== null;
 }
 
 const moveSchema = z.object({
@@ -104,14 +108,16 @@ const reorderSchema = z.object({
   moves: z.array(moveSchema).min(1),
 });
 
+/** Returns false when the caller has no (or no longer has) edit access. */
 export async function reorderItineraryItemsAction(
   input: z.infer<typeof reorderSchema>,
-): Promise<void> {
+): Promise<boolean> {
   const parsed = reorderSchema.parse(input);
   const userId = await readSessionUserId();
-  if (!userId) return;
-  await guardOwnership(() =>
+  if (!userId) return false;
+  const result = await guardOwnership(() =>
     reorderItineraryItems(userId, parsed.tripId, parsed.moves),
   );
   revalidatePath(`/trips/${parsed.tripId}/itinerary`);
+  return result !== null;
 }

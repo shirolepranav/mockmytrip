@@ -1,12 +1,16 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db/client";
-import { getTrip, type TripRow } from "./trips";
+import { type TripRow } from "./trips";
 import { OwnershipError } from "./ownership";
+import { assertCanEdit, assertCanView } from "./access";
 
 /*
- * Itinerary services (Phase 7 task 1/3): day-by-day items, ownership
- * checked via the owning trip. `dayIndex` is always clamped to the trip's
- * actual length (QA 7.3) — never trusted from the caller.
+ * Itinerary services (Phase 7 task 1/3; Phase 9 collaborator access):
+ * day-by-day items. Reads route through `assertCanView` (owner, editor, or
+ * viewer collaborator); mutations route through `assertCanEdit` (owner or
+ * editor only — a viewer-role collaborator is denied). `dayIndex` is always
+ * clamped to the trip's actual length (QA 7.3) — never trusted from the
+ * caller.
  */
 
 export type ItineraryItemRow = typeof schema.itineraryItems.$inferSelect;
@@ -29,7 +33,7 @@ export async function listItineraryItems(
   userId: string,
   tripId: string,
 ): Promise<ItineraryItemRow[]> {
-  await getTrip(userId, tripId); // ownership check
+  await assertCanView(userId, tripId);
   const db = await getDb();
   return db
     .select()
@@ -55,7 +59,7 @@ export async function addItineraryItem(
   tripId: string,
   input: AddItineraryItemInput,
 ): Promise<ItineraryItemRow> {
-  const trip = await getTrip(userId, tripId); // ownership check
+  const { trip } = await assertCanEdit(userId, tripId);
   const dayIndex = clampDayIndex(input.dayIndex, trip);
   const db = await getDb();
 
@@ -82,12 +86,15 @@ export async function addItineraryItem(
       category: input.category,
       poiId: input.poiId ?? null,
       sortOrder: nextSortOrder,
+      // Attribution (Phase 9, QA 9.6) — an "added by {name}" chip on the
+      // owner's board when this was added by a collaborator, not the owner.
+      createdByUserId: userId,
     })
     .returning();
   return row;
 }
 
-/** Finds an item and asserts the caller owns its trip; vague on both misses. */
+/** Finds an item and asserts the caller can edit its trip; vague on both misses. */
 async function getOwnedItem(userId: string, itemId: string): Promise<ItineraryItemRow> {
   const db = await getDb();
   const [item] = await db
@@ -96,7 +103,7 @@ async function getOwnedItem(userId: string, itemId: string): Promise<ItineraryIt
     .where(eq(schema.itineraryItems.id, itemId))
     .limit(1);
   if (!item) throw new OwnershipError();
-  await getTrip(userId, item.tripId); // ownership check
+  await assertCanEdit(userId, item.tripId);
   return item;
 }
 
@@ -144,7 +151,7 @@ export async function reorderItineraryItems(
   moves: ItineraryMove[],
 ): Promise<void> {
   if (moves.length === 0) return;
-  const trip = await getTrip(userId, tripId); // ownership check
+  const { trip } = await assertCanEdit(userId, tripId);
   const db = await getDb();
 
   const ids = moves.map((move) => move.itemId);

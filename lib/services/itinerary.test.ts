@@ -9,7 +9,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 process.env.PGLITE_MEMORY = "1";
 
-import { getDb } from "@/lib/db/client";
+import { getDb, schema } from "@/lib/db/client";
 import { createGuest } from "@/lib/services/users";
 import { createTrip } from "@/lib/services/trips";
 import { OwnershipError } from "./ownership";
@@ -192,5 +192,70 @@ describe("@phase7 reorder", () => {
 
     const itemsB = await listItineraryItems(user.id, tripB.id);
     expect(itemsB[0].dayIndex).toBe(0); // untouched
+  });
+});
+
+async function addCollaborator(
+  tripId: string,
+  userId: string,
+  role: "viewer" | "editor",
+) {
+  const db = await getDb();
+  await db.insert(schema.tripCollaborators).values({ tripId, userId, role });
+}
+
+describe("@phase9 collaborator access", () => {
+  it("an editor collaborator can list and mutate; a viewer can only list", async () => {
+    const owner = await createGuest();
+    const editor = await createGuest();
+    const viewer = await createGuest();
+    const trip = await makeTrip(owner.id, 3);
+    await addCollaborator(trip.id, editor.id, "editor");
+    await addCollaborator(trip.id, viewer.id, "viewer");
+
+    // Owner can still see and edit as before.
+    await expect(listItineraryItems(owner.id, trip.id)).resolves.toEqual([]);
+
+    const item = await addItineraryItem(editor.id, trip.id, {
+      dayIndex: 0,
+      title: "Added by the editor",
+      category: "activity",
+    });
+    expect(item.createdByUserId).toBe(editor.id);
+
+    await expect(listItineraryItems(viewer.id, trip.id)).resolves.toHaveLength(1);
+    await expect(
+      addItineraryItem(viewer.id, trip.id, {
+        dayIndex: 0,
+        title: "Viewer shouldn't be able to add this",
+        category: "activity",
+      }),
+    ).rejects.toThrow(OwnershipError);
+    await expect(
+      updateItineraryItem(viewer.id, item.id, { title: "Hijacked by viewer" }),
+    ).rejects.toThrow(OwnershipError);
+    await expect(reorderItineraryItems(viewer.id, trip.id, [
+      { itemId: item.id, dayIndex: 1, sortOrder: 0 },
+    ])).rejects.toThrow(OwnershipError);
+  });
+
+  it("a non-collaborator stranger is denied exactly like before (QA 7.9 still holds)", async () => {
+    const owner = await createGuest();
+    const stranger = await createGuest();
+    const trip = await makeTrip(owner.id, 3);
+    await expect(listItineraryItems(stranger.id, trip.id)).rejects.toThrow(
+      OwnershipError,
+    );
+  });
+
+  it("items the owner adds have no createdByUserId set to a collaborator", async () => {
+    const owner = await createGuest();
+    const trip = await makeTrip(owner.id, 3);
+    const item = await addItineraryItem(owner.id, trip.id, {
+      dayIndex: 0,
+      title: "Owner's own item",
+      category: "activity",
+    });
+    expect(item.createdByUserId).toBe(owner.id);
   });
 });

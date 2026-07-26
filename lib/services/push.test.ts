@@ -42,9 +42,13 @@ import { eq } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db/client";
 import { createGuest } from "@/lib/services/users";
 import { createTrip } from "@/lib/services/trips";
+import { addItineraryItem } from "@/lib/services/itinerary";
+import { createShare, joinAsCollaborator } from "@/lib/services/shares";
 import {
+  listCollaboratorDigestCandidates,
   listMilestoneCandidates,
   removeSubscription,
+  sendCollaboratorDigest,
   sendMilestonePush,
   upsertSubscription,
 } from "./push";
@@ -264,5 +268,112 @@ describe("@phase8 removeSubscription", () => {
     const db = await getDb();
     const [row] = await db.select().from(schema.users).where(eq(schema.users.id, user.id));
     expect(row.prefsJson.notifOptIn).toBe(false);
+  });
+});
+
+async function makeEditorCollaborator(ownerId: string, tripId: string, endpoint: string) {
+  const editor = await makeOptedInUserWithSubscription(endpoint);
+  const share = await createShare(ownerId, tripId, "edit");
+  const membership = await joinAsCollaborator(share.token, editor.id);
+  if ("alreadyOwner" in membership) throw new Error("unexpected");
+  const db = await getDb();
+  await db
+    .update(schema.tripCollaborators)
+    .set({ notifyOptIn: true })
+    .where(eq(schema.tripCollaborators.id, membership.id));
+  return editor;
+}
+
+describe("@phase9 collaborator milestone opt-in", () => {
+  it("a collaborator with their own notify_opt_in gets milestone pushes for that trip", async () => {
+    const owner = await createGuest();
+    const trip = await makeTripStartingIn(owner.id, 7, "Porto");
+    const editor = await makeEditorCollaborator(owner.id, trip.id, "https://push.example/collab-7d");
+
+    const candidates = (await listMilestoneCandidates()).filter((c) => c.userId === editor.id);
+    expect(candidates).toEqual([
+      expect.objectContaining({ userId: editor.id, tripId: trip.id, milestone: "7d" }),
+    ]);
+  });
+
+  it("a collaborator without notify_opt_in on their membership gets nothing", async () => {
+    const owner = await createGuest();
+    const editor = await makeOptedInUserWithSubscription("https://push.example/collab-no-optin");
+    const trip = await makeTripStartingIn(owner.id, 7, "Vienna");
+    const share = await createShare(owner.id, trip.id, "edit");
+    await joinAsCollaborator(share.token, editor.id); // notifyOptIn defaults to false
+
+    const candidates = (await listMilestoneCandidates()).filter((c) => c.userId === editor.id);
+    expect(candidates).toEqual([]);
+  });
+
+  it("the owner's own opted-in push is unaffected by a collaborator also being opted in", async () => {
+    const owner = await makeOptedInUserWithSubscription("https://push.example/owner-still-works");
+    const trip = await makeTripStartingIn(owner.id, 7, "Athens");
+    await makeEditorCollaborator(owner.id, trip.id, "https://push.example/collab-alongside-owner");
+
+    const ownerCandidates = (await listMilestoneCandidates()).filter((c) => c.userId === owner.id);
+    expect(ownerCandidates).toEqual([
+      expect.objectContaining({ userId: owner.id, tripId: trip.id, milestone: "7d" }),
+    ]);
+  });
+});
+
+describe("@phase9 listCollaboratorDigestCandidates / sendCollaboratorDigest", () => {
+  it("a trip with a new collaborator-authored item is a digest candidate", async () => {
+    const owner = await createGuest();
+    const trip = await makeTripStartingIn(owner.id, 20, "Marrakech");
+    const share = await createShare(owner.id, trip.id, "edit");
+    const membership = await joinAsCollaborator(share.token, (await createGuest()).id);
+    if ("alreadyOwner" in membership) throw new Error("unexpected");
+    await addItineraryItem(membership.userId, trip.id, {
+      dayIndex: 0,
+      title: "Souk wandering",
+      category: "activity",
+    });
+
+    const candidates = (await listCollaboratorDigestCandidates()).filter(
+      (c) => c.tripId === trip.id,
+    );
+    expect(candidates).toEqual([
+      expect.objectContaining({ tripId: trip.id, ownerUserId: owner.id, newItemCount: 1 }),
+    ]);
+  });
+
+  it("items the owner added themselves never trigger a digest", async () => {
+    const owner = await createGuest();
+    const trip = await makeTripStartingIn(owner.id, 20, "Helsinki");
+    await addItineraryItem(owner.id, trip.id, {
+      dayIndex: 0,
+      title: "Owner's own idea",
+      category: "activity",
+    });
+
+    const candidates = (await listCollaboratorDigestCandidates()).filter(
+      (c) => c.tripId === trip.id,
+    );
+    expect(candidates).toEqual([]);
+  });
+
+  it("sendCollaboratorDigest advances the cursor so the same items don't re-trigger a same-day digest", async () => {
+    const owner = await makeOptedInUserWithSubscription("https://push.example/digest-owner");
+    const trip = await makeTripStartingIn(owner.id, 20, "Tallinn");
+    const share = await createShare(owner.id, trip.id, "edit");
+    const membership = await joinAsCollaborator(share.token, (await createGuest()).id);
+    if ("alreadyOwner" in membership) throw new Error("unexpected");
+    await addItineraryItem(membership.userId, trip.id, {
+      dayIndex: 0,
+      title: "Old town walk",
+      category: "sight",
+    });
+
+    const [before] = (await listCollaboratorDigestCandidates()).filter(
+      (c) => c.tripId === trip.id,
+    );
+    expect(before).toBeDefined();
+    await sendCollaboratorDigest(before);
+
+    const after = (await listCollaboratorDigestCandidates()).filter((c) => c.tripId === trip.id);
+    expect(after).toEqual([]);
   });
 });

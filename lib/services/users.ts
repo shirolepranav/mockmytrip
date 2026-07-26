@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db/client";
 
 /*
@@ -91,6 +91,14 @@ export async function exportData(userId: string) {
     .select()
     .from(schema.aiUsage)
     .where(eq(schema.aiUsage.userId, userId));
+  const ownedShares = await db
+    .select()
+    .from(schema.tripShares)
+    .where(eq(schema.tripShares.ownerUserId, userId));
+  const collaboratingOn = await db
+    .select()
+    .from(schema.tripCollaborators)
+    .where(eq(schema.tripCollaborators.userId, userId));
 
   const tripIds = userTrips.map((trip) => trip.id);
   const itinerary = [] as (typeof schema.itineraryItems.$inferSelect)[];
@@ -121,6 +129,8 @@ export async function exportData(userId: string) {
     packingItems: packing,
     drafts,
     aiUsage,
+    tripShares: ownedShares,
+    tripCollaborations: collaboratingOn,
   };
 }
 
@@ -157,6 +167,51 @@ export async function mergeGuestIntoAccount(
     .update(schema.pushSubscriptions)
     .set({ userId: accountId })
     .where(eq(schema.pushSubscriptions.userId, guestId));
+
+  // Share links the guest created keep their owner (no unique constraint
+  // to worry about — a user can own arbitrarily many).
+  await db
+    .update(schema.tripShares)
+    .set({ ownerUserId: accountId })
+    .where(eq(schema.tripShares.ownerUserId, guestId));
+
+  // Collaborator memberships have a unique (trip_id, user_id) constraint,
+  // so a straight bulk UPDATE can collide if the account already has its
+  // own membership row on a trip the guest also joined. Move row by row:
+  // on conflict, keep the higher-privilege role and drop the guest's now-
+  // redundant row instead of updating it into a collision.
+  const guestMemberships = await db
+    .select()
+    .from(schema.tripCollaborators)
+    .where(eq(schema.tripCollaborators.userId, guestId));
+  for (const membership of guestMemberships) {
+    const [existing] = await db
+      .select()
+      .from(schema.tripCollaborators)
+      .where(
+        and(
+          eq(schema.tripCollaborators.tripId, membership.tripId),
+          eq(schema.tripCollaborators.userId, accountId),
+        ),
+      )
+      .limit(1);
+    if (existing) {
+      if (existing.role !== "editor" && membership.role === "editor") {
+        await db
+          .update(schema.tripCollaborators)
+          .set({ role: "editor" })
+          .where(eq(schema.tripCollaborators.id, existing.id));
+      }
+      await db
+        .delete(schema.tripCollaborators)
+        .where(eq(schema.tripCollaborators.id, membership.id));
+    } else {
+      await db
+        .update(schema.tripCollaborators)
+        .set({ userId: accountId })
+        .where(eq(schema.tripCollaborators.id, membership.id));
+    }
+  }
 
   // Carry the savings tally over, then remove the guest.
   const guest = await getUser(guestId);

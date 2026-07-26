@@ -1,4 +1,4 @@
-import { and, eq, gte, lte, sql } from "drizzle-orm";
+import { and, eq, gt, gte, isNotNull, lte, ne, sql } from "drizzle-orm";
 import webpush, { WebPushError } from "web-push";
 import { getDb, schema } from "@/lib/db/client";
 import { updatePrefs } from "@/lib/services/users";
@@ -8,6 +8,18 @@ import { updatePrefs } from "@/lib/services/users";
  * milestone-notification cron. `push_subscriptions` and
  * `users.prefs_json.notifOptIn` were already in the schema (migrated in
  * drizzle/0000_init.sql) — this just wires them up.
+ *
+ * Phase 9 task 7 adds two things, both minimal extensions of the existing
+ * cron rather than a new abstraction: (1) collaborators with their own
+ * per-trip `notify_opt_in` also receive milestone pushes for that trip —
+ * gated by BOTH that flag AND their own `users.prefs_json.notifOptIn`,
+ * since one is "push enabled at all" and the other is "for this
+ * collaboration specifically"; (2) a batched "N new ideas" digest to the
+ * owner, capped at once/day via `trips.last_collaborator_digest_at`
+ * (intentionally a separate cap from `push_subscriptions.last_sent_at`'s
+ * milestone cap, so a milestone push and a digest can both go out the same
+ * day — the spec's "at most one batched notice per day" is about the
+ * digest specifically, not total pushes).
  */
 
 export type PushSubscriptionRow = typeof schema.pushSubscriptions.$inferSelect;
@@ -139,6 +151,48 @@ export async function listMilestoneCandidates(
       ),
     );
 
+  // Collaborators with their own per-trip opt-in also get milestone pushes
+  // for that trip — same shape, joined through trip_collaborators instead
+  // of trips.user_id.
+  const collaboratorRows = await db
+    .select({
+      tripId: schema.trips.id,
+      userId: schema.tripCollaborators.userId,
+      startDate: schema.trips.startDate,
+      endDate: schema.trips.endDate,
+      destinationCity: schema.trips.destinationCity,
+    })
+    .from(schema.tripCollaborators)
+    .innerJoin(schema.trips, eq(schema.tripCollaborators.tripId, schema.trips.id))
+    .innerJoin(schema.users, eq(schema.tripCollaborators.userId, schema.users.id))
+    .where(
+      and(
+        eq(schema.tripCollaborators.notifyOptIn, true),
+        sql`${schema.users.prefsJson}->>'notifOptIn' = 'true'`,
+        gte(schema.trips.startDate, windowStart),
+        lte(schema.trips.startDate, windowEnd),
+      ),
+    );
+  const collaboratorMemoryRows = await db
+    .select({
+      tripId: schema.trips.id,
+      userId: schema.tripCollaborators.userId,
+      startDate: schema.trips.startDate,
+      endDate: schema.trips.endDate,
+      destinationCity: schema.trips.destinationCity,
+    })
+    .from(schema.tripCollaborators)
+    .innerJoin(schema.trips, eq(schema.tripCollaborators.tripId, schema.trips.id))
+    .innerJoin(schema.users, eq(schema.tripCollaborators.userId, schema.users.id))
+    .where(
+      and(
+        eq(schema.tripCollaborators.notifyOptIn, true),
+        sql`${schema.users.prefsJson}->>'notifOptIn' = 'true'`,
+        gte(schema.trips.endDate, windowStart),
+        lte(schema.trips.endDate, new Date(nowMs)),
+      ),
+    );
+
   const subscribedUserIds = new Set(
     (await db.select({ userId: schema.pushSubscriptions.userId }).from(schema.pushSubscriptions)).map(
       (row) => row.userId,
@@ -162,7 +216,7 @@ export async function listMilestoneCandidates(
   );
 
   const candidatesByUser = new Map<string, MilestoneCandidate>();
-  for (const row of [...rows, ...memoryRows]) {
+  for (const row of [...rows, ...memoryRows, ...collaboratorRows, ...collaboratorMemoryRows]) {
     if (candidatesByUser.has(row.userId)) continue; // one candidate per user per run
     if (!subscribedUserIds.has(row.userId) || sentTodayUserIds.has(row.userId)) continue;
     const milestone = milestoneFor(row.startDate.getTime(), row.endDate.getTime(), nowMs);
@@ -208,23 +262,19 @@ function configureVapid(): boolean {
   return true;
 }
 
-/** Sends one candidate's milestone push to every one of the user's subscribed devices. */
-export async function sendMilestonePush(candidate: MilestoneCandidate): Promise<void> {
+/** Sends one payload to every one of a user's subscribed devices; prunes dead endpoints. */
+async function sendPushToUser(
+  userId: string,
+  payload: string,
+): Promise<void> {
   if (!configureVapid()) return; // no VAPID keys configured — nothing to send
 
   const db = await getDb();
   const subscriptions = await db
     .select()
     .from(schema.pushSubscriptions)
-    .where(eq(schema.pushSubscriptions.userId, candidate.userId));
+    .where(eq(schema.pushSubscriptions.userId, userId));
   if (subscriptions.length === 0) return;
-
-  const { title, body } = MILESTONE_COPY[candidate.milestone](candidate.destinationCity);
-  const url =
-    candidate.milestone === "memory"
-      ? `/trips/${candidate.tripId}/memories`
-      : `/trips/${candidate.tripId}`;
-  const payload = JSON.stringify({ title, body, url });
 
   for (const subscription of subscriptions) {
     try {
@@ -248,4 +298,101 @@ export async function sendMilestonePush(candidate: MilestoneCandidate): Promise<
       }
     }
   }
+}
+
+/** Sends one candidate's milestone push to every one of the user's subscribed devices. */
+export async function sendMilestonePush(candidate: MilestoneCandidate): Promise<void> {
+  const { title, body } = MILESTONE_COPY[candidate.milestone](candidate.destinationCity);
+  const url =
+    candidate.milestone === "memory"
+      ? `/trips/${candidate.tripId}/memories`
+      : `/trips/${candidate.tripId}`;
+  await sendPushToUser(candidate.userId, JSON.stringify({ title, body, url }));
+}
+
+/* ── Owner "new ideas from collaborators" digest (Phase 9 task 7) ──────── */
+
+export interface CollaboratorDigestCandidate {
+  tripId: string;
+  ownerUserId: string;
+  destinationCity: string;
+  newItemCount: number;
+}
+
+/**
+ * Trips whose owner has new collaborator-authored itinerary items since
+ * the last digest (or since the trip was created, if never digested), that
+ * haven't already been digested today. `trips.last_collaborator_digest_at`
+ * is the per-trip cursor — chosen over a per-user cursor since an owner
+ * with several actively-collaborated trips shouldn't have one trip's
+ * digest cadence suppress another's.
+ */
+export async function listCollaboratorDigestCandidates(
+  nowMs = Date.now(),
+): Promise<CollaboratorDigestCandidate[]> {
+  const db = await getDb();
+  const todayStart = new Date(utcDayString(nowMs));
+
+  const trips = await db
+    .select({
+      tripId: schema.trips.id,
+      ownerUserId: schema.trips.userId,
+      destinationCity: schema.trips.destinationCity,
+      lastDigestAt: schema.trips.lastCollaboratorDigestAt,
+      createdAt: schema.trips.createdAt,
+    })
+    .from(schema.trips)
+    .innerJoin(
+      schema.tripCollaborators,
+      eq(schema.tripCollaborators.tripId, schema.trips.id),
+    );
+
+  const seenTripIds = new Set<string>();
+  const candidates: CollaboratorDigestCandidate[] = [];
+  for (const trip of trips) {
+    if (seenTripIds.has(trip.tripId)) continue; // the join can repeat a trip once per collaborator
+    seenTripIds.add(trip.tripId);
+    if (trip.lastDigestAt && trip.lastDigestAt >= todayStart) continue; // already digested today
+
+    const cursor = trip.lastDigestAt ?? trip.createdAt;
+    const newItems = await db
+      .select({ id: schema.itineraryItems.id })
+      .from(schema.itineraryItems)
+      .where(
+        and(
+          eq(schema.itineraryItems.tripId, trip.tripId),
+          isNotNull(schema.itineraryItems.createdByUserId),
+          ne(schema.itineraryItems.createdByUserId, trip.ownerUserId),
+          gt(schema.itineraryItems.createdAt, cursor),
+        ),
+      );
+    if (newItems.length === 0) continue;
+
+    candidates.push({
+      tripId: trip.tripId,
+      ownerUserId: trip.ownerUserId,
+      destinationCity: trip.destinationCity,
+      newItemCount: newItems.length,
+    });
+  }
+  return candidates;
+}
+
+/** Sends the owner's batched digest push, then advances the per-trip cursor. */
+export async function sendCollaboratorDigest(
+  candidate: CollaboratorDigestCandidate,
+): Promise<void> {
+  const plural = candidate.newItemCount === 1 ? "idea" : "ideas";
+  const payload = JSON.stringify({
+    title: "New ideas from your co-planners",
+    body: `${candidate.newItemCount} new ${plural} for ${candidate.destinationCity}.`,
+    url: `/trips/${candidate.tripId}/itinerary`,
+  });
+  await sendPushToUser(candidate.ownerUserId, payload);
+
+  const db = await getDb();
+  await db
+    .update(schema.trips)
+    .set({ lastCollaboratorDigestAt: new Date() })
+    .where(eq(schema.trips.id, candidate.tripId));
 }

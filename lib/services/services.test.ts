@@ -17,7 +17,9 @@ import {
   exportData,
   getOrCreateGuest,
   getUser,
+  mergeGuestIntoAccount,
 } from "./users";
+import { createShare, joinAsCollaborator, listCollaborators } from "./shares";
 import {
   createTrip,
   deleteTrip,
@@ -214,6 +216,94 @@ describe("@phase2 export & delete", () => {
       .from(schema.tripDrafts)
       .where(eq(schema.tripDrafts.userId, user.id));
     expect(orphanDrafts).toHaveLength(0);
+  });
+});
+
+describe("@phase9 guest merge carries shares/collaborations", () => {
+  it("a share the guest created reassigns to the account on merge", async () => {
+    const guest = await createGuest();
+    const account = await createGuest();
+    const trip = await createTrip(guest.id, {
+      title: "Guest's dream trip",
+      destinationCity: "Kyoto",
+      ...tripDates,
+    });
+    const share = await createShare(guest.id, trip.id, "view");
+
+    await mergeGuestIntoAccount(guest.id, account.id);
+
+    const db = await getDb();
+    const [reloaded] = await db
+      .select()
+      .from(schema.tripShares)
+      .where(eq(schema.tripShares.id, share.id));
+    expect(reloaded.ownerUserId).toBe(account.id);
+  });
+
+  it("a collaborator membership the guest held reassigns to the account", async () => {
+    const owner = await createGuest();
+    const guest = await createGuest();
+    const account = await createGuest();
+    const trip = await createTrip(owner.id, {
+      title: "Someone else's trip",
+      destinationCity: "Porto",
+      ...tripDates,
+    });
+    const share = await createShare(owner.id, trip.id, "edit");
+    await joinAsCollaborator(share.token, guest.id);
+
+    await mergeGuestIntoAccount(guest.id, account.id);
+
+    const collaborators = await listCollaborators(owner.id, trip.id);
+    expect(collaborators.map((c) => c.userId)).toEqual([account.id]);
+  });
+
+  it("on a role conflict, merge keeps the higher-privilege role and drops the redundant row", async () => {
+    const owner = await createGuest();
+    const guest = await createGuest();
+    const account = await createGuest();
+    const trip = await createTrip(owner.id, {
+      title: "Conflict trip",
+      destinationCity: "Vienna",
+      ...tripDates,
+    });
+    const editLink = await createShare(owner.id, trip.id, "edit");
+    await joinAsCollaborator(editLink.token, guest.id); // guest joins as editor
+
+    // The account already has its own (weaker) membership on the same trip.
+    const db = await getDb();
+    await db
+      .insert(schema.tripCollaborators)
+      .values({ tripId: trip.id, userId: account.id, role: "viewer" });
+
+    await mergeGuestIntoAccount(guest.id, account.id);
+
+    const collaborators = await listCollaborators(owner.id, trip.id);
+    expect(collaborators).toHaveLength(1);
+    expect(collaborators[0].userId).toBe(account.id);
+    expect(collaborators[0].role).toBe("editor"); // higher-privilege role wins
+  });
+
+  it("exportData includes the user's own shares and collaborations, never anyone else's", async () => {
+    const owner = await createGuest();
+    const collaborator = await createGuest();
+    const trip = await createTrip(owner.id, {
+      title: "Export-visible trip",
+      destinationCity: "Reykjavik",
+      ...tripDates,
+    });
+    const share = await createShare(owner.id, trip.id, "edit");
+    await joinAsCollaborator(share.token, collaborator.id);
+
+    const ownerExport = await exportData(owner.id);
+    expect(ownerExport?.tripShares.map((s) => s.id)).toEqual([share.id]);
+    expect(ownerExport?.tripCollaborations).toEqual([]);
+
+    const collaboratorExport = await exportData(collaborator.id);
+    expect(collaboratorExport?.tripShares).toEqual([]);
+    expect(collaboratorExport?.tripCollaborations.map((c) => c.tripId)).toEqual([
+      trip.id,
+    ]);
   });
 });
 
