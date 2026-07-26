@@ -8,7 +8,7 @@ on:
 env:
   # Phase tag for changed-scope e2e regression (bump per phase, or override
   # via workflow_dispatch). Ethics guards run on every commit from Phase 5.
-  CURRENT_PHASE_TAG: "@phase8"
+  CURRENT_PHASE_TAG: "@phase9"
 
 jobs:
   quality:
@@ -24,6 +24,8 @@ jobs:
         run: npm run lint
       - name: Banned-styles gate (anti-vibe-code)
         run: npm run lint:styles
+      - name: Referral-gating gate (ethics)
+        run: npm run lint:ethics
       - name: Typecheck
         run: npm run typecheck
       - name: Unit & component tests
@@ -43,5 +45,5 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Phase-scoped e2e regression
         run: npx playwright test --grep "${{ env.CURRENT_PHASE_TAG }}"
-      - name: Ethics guards (required on every commit from Phase 5 onward)
+      - name: Ethics guards (required on every commit; Phase 5 payment/simulation guards + Phase 9 referral-gating/calendar-labeling guards)
         run: npx playwright test e2e/ethics --grep "@ethics"

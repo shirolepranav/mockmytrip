@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "lint:styles": "node scripts/check-banned-styles.mjs",
+    "lint:ethics": "node scripts/check-no-referral-gating.mjs",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "test": "vitest",
