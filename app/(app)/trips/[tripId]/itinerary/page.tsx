@@ -1,13 +1,22 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { readSessionUserId } from "@/lib/auth/session";
-import { getOutboundFlightContext, getTrip } from "@/lib/services/trips";
+import { getOutboundFlightContext } from "@/lib/services/trips";
+import { assertCanView } from "@/lib/services/access";
+import { listCollaboratorNamesForViewer } from "@/lib/services/shares";
 import { OwnershipError } from "@/lib/services/ownership";
 import { listItineraryItems, tripLengthDays } from "@/lib/services/itinerary";
 import { formatDateInTz } from "@/lib/format";
 import { ItineraryBoard } from "@/components/itinerary-board";
 
-/* Itinerary builder (WF §14): day columns seeded from the trip's own dates. */
+/*
+ * Itinerary builder (WF §14): day columns seeded from the trip's own dates.
+ * Phase 9: this is the SAME route a collaborator lands on (task 6 — "the
+ * shared page and owner's itinerary" both edit through here, not a
+ * separate collaborator-only route). `assertCanView` admits owner/editor/
+ * viewer; ItineraryBoard's own `canEdit` prop then hides mutation
+ * affordances for a viewer.
+ */
 
 export const metadata = { title: "Itinerary" };
 
@@ -22,17 +31,23 @@ export default async function ItineraryPage({
   const userId = await readSessionUserId();
   if (!userId) notFound();
 
-  let trip;
+  let access;
   try {
-    trip = await getTrip(userId, tripId);
+    access = await assertCanView(userId, tripId);
   } catch (error) {
     if (error instanceof OwnershipError) notFound();
     throw error;
   }
+  const { trip, role } = access;
+  const isOwner = role === "owner";
 
-  const [items, flightContext] = await Promise.all([
+  const [items, flightContext, collaboratorNames] = await Promise.all([
     listItineraryItems(userId, tripId),
-    getOutboundFlightContext(userId, tripId),
+    // Flight/booking detail stays owner-only (golden rule #10) — a
+    // collaborator's day labels fall back to UTC dates rather than the
+    // destination's local dates, a minor, acceptable simplification.
+    isOwner ? getOutboundFlightContext(userId, tripId) : Promise.resolve(null),
+    listCollaboratorNamesForViewer(userId, tripId),
   ]);
   const tz = flightContext?.originTz ?? "UTC";
   const dayCount = tripLengthDays(trip);
@@ -49,13 +64,15 @@ export default async function ItineraryPage({
           </p>
           <h1 className="font-display text-2xl">{trip.title} — Itinerary</h1>
         </div>
-        <Link
-          href={`/trips/${tripId}/itinerary/print`}
-          data-testid="itinerary-export-link"
-          className="press-physical inline-flex min-h-11 items-center rounded-pill border border-line px-s5 font-semibold text-ink"
-        >
-          Export itinerary
-        </Link>
+        {isOwner ? (
+          <Link
+            href={`/trips/${tripId}/itinerary/print`}
+            data-testid="itinerary-export-link"
+            className="press-physical inline-flex min-h-11 items-center rounded-pill border border-line px-s5 font-semibold text-ink"
+          >
+            Export itinerary
+          </Link>
+        ) : null}
       </header>
 
       <ItineraryBoard
@@ -64,6 +81,10 @@ export default async function ItineraryPage({
         initialItems={items}
         dayCount={dayCount}
         dayLabels={dayLabels}
+        currentUserId={userId}
+        canEdit={role !== "viewer"}
+        ownerUserId={trip.userId}
+        collaboratorNames={collaboratorNames}
       />
     </section>
   );

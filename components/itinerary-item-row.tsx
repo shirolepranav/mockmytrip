@@ -28,10 +28,19 @@ export interface ItineraryEditPatch {
  * taps elsewhere on the row stay reachable), inline edit, delete, and a
  * keyboard/touch-friendly "move to day" alternative to dragging between
  * day columns.
+ *
+ * `readOnly` (Phase 9) renders a plain, non-interactive card for a
+ * viewer-role collaborator — no drag handle, edit, delete, or move
+ * controls; `onEdit`/`onDelete`/`onMoveDay`/`onDragEnd` are all optional in
+ * that mode. `attributionLabel` (Phase 9, QA 9.6) renders an "added by
+ * {name}" chip when the item was added by someone other than the trip
+ * owner.
  */
 export function ItineraryItemRow({
   item,
   dayCount,
+  readOnly = false,
+  attributionLabel,
   onEdit,
   onDelete,
   onMoveDay,
@@ -39,10 +48,12 @@ export function ItineraryItemRow({
 }: {
   item: ItemRow;
   dayCount: number;
-  onEdit: (itemId: string, patch: ItineraryEditPatch) => void;
-  onDelete: (item: ItemRow) => void;
-  onMoveDay: (item: ItemRow, direction: -1 | 1) => void;
-  onDragEnd: () => void;
+  readOnly?: boolean;
+  attributionLabel?: string | null;
+  onEdit?: (itemId: string, patch: ItineraryEditPatch) => void;
+  onDelete?: (item: ItemRow) => void;
+  onMoveDay?: (item: ItemRow, direction: -1 | 1) => void;
+  onDragEnd?: () => void;
 }) {
   const controls = useDragControls();
   const [editing, setEditing] = useState(false);
@@ -52,13 +63,41 @@ export function ItineraryItemRow({
   const [category, setCategory] = useState<ItineraryCategory>(item.category);
 
   function save() {
-    onEdit(item.id, {
+    onEdit?.(item.id, {
       title: title.trim() || item.title,
       time: time.trim() ? time.trim() : null,
       note: note.trim() ? note.trim() : null,
       category,
     });
     setEditing(false);
+  }
+
+  const attributionChip = attributionLabel ? (
+    <span
+      data-testid="itinerary-item-attribution"
+      className="inline-flex w-fit items-center rounded-pill bg-paper2 px-s2 py-0.5 text-[11px] font-semibold tracking-wide text-horizon-deep uppercase"
+    >
+      Added by {attributionLabel}
+    </span>
+  ) : null;
+
+  if (readOnly) {
+    return (
+      <div
+        data-testid="itinerary-item"
+        className="ticket-surface flex flex-col gap-s2 p-s3"
+      >
+        <div className="flex flex-col items-start gap-1">
+          <span className="flex items-center gap-s2 text-xs font-semibold tracking-wide text-ink-soft uppercase">
+            {item.time ? <span className="font-mono">{item.time}</span> : null}
+            <span>{CATEGORY_LABELS[item.category]}</span>
+          </span>
+          <span className="font-display text-base">{item.title}</span>
+          {item.note ? <span className="text-sm text-ink-soft">{item.note}</span> : null}
+          {attributionChip}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -83,6 +122,7 @@ export function ItineraryItemRow({
         </button>
 
         <div className="flex min-w-0 flex-1 flex-col gap-1">
+          {attributionChip}
           {editing ? (
             <div className="flex flex-col gap-s2">
               <input
@@ -159,7 +199,7 @@ export function ItineraryItemRow({
 
         <button
           type="button"
-          onClick={() => onDelete(item)}
+          onClick={() => onDelete?.(item)}
           aria-label={`Delete ${item.title}`}
           data-testid="itinerary-delete"
           className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-pill text-ink-soft hover:bg-paper2"
@@ -171,7 +211,7 @@ export function ItineraryItemRow({
       <div className="flex items-center justify-between gap-s2 border-t border-line pt-s2">
         <button
           type="button"
-          onClick={() => onMoveDay(item, -1)}
+          onClick={() => onMoveDay?.(item, -1)}
           disabled={item.dayIndex === 0}
           aria-label="Move to previous day"
           data-testid="itinerary-move-prev"
@@ -182,7 +222,7 @@ export function ItineraryItemRow({
         <span className="text-xs text-ink-soft">Day {item.dayIndex + 1}</span>
         <button
           type="button"
-          onClick={() => onMoveDay(item, 1)}
+          onClick={() => onMoveDay?.(item, 1)}
           disabled={item.dayIndex >= dayCount - 1}
           aria-label="Move to next day"
           data-testid="itinerary-move-next"

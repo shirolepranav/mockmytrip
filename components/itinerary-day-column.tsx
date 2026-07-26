@@ -20,6 +20,8 @@ export function ItineraryDayColumn({
   dayLabel,
   items,
   dayCount,
+  canEdit = true,
+  attributionFor,
   onReorderLive,
   onReorderCommit,
   onEdit,
@@ -32,6 +34,10 @@ export function ItineraryDayColumn({
   dayLabel: string;
   items: ItemRow[];
   dayCount: number;
+  /** False for a viewer-role collaborator — read-only list, no add/drag/edit/delete. */
+  canEdit?: boolean;
+  /** "added by {name}" chip text for a given item, or null for the owner's own items. */
+  attributionFor?: (item: ItemRow) => string | null;
   onReorderLive: (dayIndex: number, items: ItemRow[]) => void;
   onReorderCommit: (dayIndex: number) => void;
   onEdit: (itemId: string, patch: ItineraryEditPatch) => void;
@@ -53,7 +59,7 @@ export function ItineraryDayColumn({
         <p className="rounded-card border border-dashed border-line p-s4 text-center text-sm text-ink-soft">
           Nothing planned yet.
         </p>
-      ) : (
+      ) : canEdit ? (
         <Reorder.Group
           axis="y"
           values={items}
@@ -66,6 +72,7 @@ export function ItineraryDayColumn({
               key={item.id}
               item={item}
               dayCount={dayCount}
+              attributionLabel={attributionFor?.(item) ?? null}
               onEdit={onEdit}
               onDelete={onDelete}
               onMoveDay={onMoveDay}
@@ -73,25 +80,42 @@ export function ItineraryDayColumn({
             />
           ))}
         </Reorder.Group>
+      ) : (
+        <div
+          className="flex flex-col gap-s3"
+          data-testid={`itinerary-day-list-${dayIndex}`}
+        >
+          {items.map((item) => (
+            <ItineraryItemRow
+              key={item.id}
+              item={item}
+              dayCount={dayCount}
+              readOnly
+              attributionLabel={attributionFor?.(item) ?? null}
+            />
+          ))}
+        </div>
       )}
 
-      <div className="flex flex-wrap gap-s2">
-        <button
-          type="button"
-          onClick={() => onAddClick(dayIndex)}
-          data-testid="itinerary-add-button"
-          className="press-physical inline-flex min-h-11 items-center justify-center rounded-pill border border-line px-s4 text-sm font-semibold text-ink hover:bg-paper2"
-        >
-          + Add item
-        </button>
-        <Link
-          href={`/trips/${tripId}/explore`}
-          data-testid="itinerary-add-from-explore"
-          className="press-physical inline-flex min-h-11 items-center justify-center rounded-pill border border-line px-s4 text-sm font-semibold text-ink hover:bg-paper2"
-        >
-          Add from Explore
-        </Link>
-      </div>
+      {canEdit ? (
+        <div className="flex flex-wrap gap-s2">
+          <button
+            type="button"
+            onClick={() => onAddClick(dayIndex)}
+            data-testid="itinerary-add-button"
+            className="press-physical inline-flex min-h-11 items-center justify-center rounded-pill border border-line px-s4 text-sm font-semibold text-ink hover:bg-paper2"
+          >
+            + Add item
+          </button>
+          <Link
+            href={`/trips/${tripId}/explore`}
+            data-testid="itinerary-add-from-explore"
+            className="press-physical inline-flex min-h-11 items-center justify-center rounded-pill border border-line px-s4 text-sm font-semibold text-ink hover:bg-paper2"
+          >
+            Add from Explore
+          </Link>
+        </div>
+      ) : null}
     </div>
   );
 }

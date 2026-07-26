@@ -7,6 +7,7 @@ import { OwnershipError } from "@/lib/services/ownership";
 import { formatDateInTz } from "@/lib/format";
 import { BoardingPassReveal } from "@/components/boarding-pass-reveal";
 import { ConfirmationEffects } from "@/components/confirmation-effects";
+import { AddToCalendarButton } from "@/components/add-to-calendar-button";
 
 /*
  * Confirmation / boarding pass (WF §11): the pass, Download PDF, email
@@ -97,6 +98,7 @@ export default async function ConfirmationPage({
         >
           View passport
         </Link>
+        <AddToCalendarButton tripId={data.tripId} />
       </div>
 
       <p className="text-center text-sm text-ink-soft">

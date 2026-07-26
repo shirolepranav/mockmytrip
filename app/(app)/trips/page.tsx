@@ -2,6 +2,7 @@ import Link from "next/link";
 import { readSessionUserId } from "@/lib/auth/session";
 import { getUser } from "@/lib/services/users";
 import { listTrips, statusOf, type TripRow, type TripStatus } from "@/lib/services/trips";
+import { listCollaboratingTrips } from "@/lib/services/shares";
 import { TripCard } from "@/components/trip-card";
 import { SavingsTally } from "@/components/savings-tally";
 import { currentTimeMs } from "@/lib/countdown";
@@ -10,6 +11,12 @@ import { currentTimeMs } from "@/lib/countdown";
  * My Trips dashboard (WF §12): TripCards grouped Upcoming/In progress/
  * Memories, savings-tally header, "Plan another" CTA. Trip status is
  * recomputed on every read via statusOf — no cron needed.
+ *
+ * Phase 9 adds a "Shared with you" section (QA 9.5 — a collaborator's
+ * joined trip appears in their dashboard) for trips this user collaborates
+ * on but doesn't own. A user with zero owned trips but one collaboration
+ * must NOT see the owned-trips empty state — hence checking both lists
+ * before deciding which view to render.
  */
 
 export const metadata = { title: "My Trips" };
@@ -25,9 +32,10 @@ export default async function TripsPage() {
   const nowMs = currentTimeMs();
 
   const trips = userId ? await listTrips(userId) : [];
+  const collaboratingTrips = userId ? await listCollaboratingTrips(userId) : [];
   const user = userId ? await getUser(userId) : null;
 
-  if (trips.length === 0) {
+  if (trips.length === 0 && collaboratingTrips.length === 0) {
     return (
       <section className="flex flex-col items-start gap-s3">
         <h1 className="font-display text-2xl">Your adventures await</h1>
@@ -77,6 +85,24 @@ export default async function TripsPage() {
           nowMs={nowMs}
         />
       ))}
+
+      {collaboratingTrips.length > 0 ? (
+        <div className="flex flex-col gap-s3">
+          <h2 className="font-display text-lg text-ink-soft">Shared with you</h2>
+          <div className="flex flex-col gap-s2" data-testid="trip-group-shared">
+            {collaboratingTrips.map(({ trip, ownerDisplayName }) => (
+              <TripCard
+                key={trip.id}
+                trip={trip}
+                status={statusOf(trip, now)}
+                nowMs={nowMs}
+                sharedByLabel={ownerDisplayName ?? "a friend"}
+                showOwnerMenu={false}
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <Link
         href="/search/flights"

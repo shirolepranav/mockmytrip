@@ -21,10 +21,16 @@ export function TripCard({
   trip,
   status,
   nowMs,
+  sharedByLabel,
+  showOwnerMenu = true,
 }: {
   trip: TripRow;
   status: TripStatus;
   nowMs: number;
+  /** "Shared by {name}" badge — set for a trip this user collaborates on, not owns (Phase 9). */
+  sharedByLabel?: string | null;
+  /** False for a collaborated-on trip — rename/delete belong to the owner only. */
+  showOwnerMenu?: boolean;
 }) {
   const chip = miniCountdownLabel(trip, status, nowMs);
 
@@ -51,6 +57,14 @@ export function TripCard({
             {trip.destinationCity}
             {trip.destinationCountry ? `, ${trip.destinationCountry}` : ""}
           </p>
+          {sharedByLabel ? (
+            <span
+              data-testid="trip-shared-by-badge"
+              className="w-fit rounded-pill bg-paper2 px-s2 py-0.5 text-[11px] font-semibold tracking-wide text-horizon-deep uppercase"
+            >
+              Shared by {sharedByLabel}
+            </span>
+          ) : null}
         </div>
         {chip ? (
           <span
@@ -61,7 +75,7 @@ export function TripCard({
           </span>
         ) : null}
       </Link>
-      <TripCardMenu tripId={trip.id} title={trip.title} />
+      {showOwnerMenu ? <TripCardMenu tripId={trip.id} title={trip.title} /> : null}
     </div>
   );
 }

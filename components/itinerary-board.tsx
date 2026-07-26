@@ -11,6 +11,7 @@ import { AiSuggestButton, type AiSuggestedItem } from "@/components/ai-suggest-s
 import { ItineraryDayColumn } from "@/components/itinerary-day-column";
 import type { ItineraryEditPatch } from "@/components/itinerary-item-row";
 import { Sheet } from "@/components/sheet";
+import { Toast } from "@/components/toast";
 import { UndoToast } from "@/components/undo-toast";
 import { useOfflineQueue } from "@/lib/offline/use-offline-queue";
 import type { QueuedMutation } from "@/lib/offline/mutation-queue";
@@ -28,6 +29,13 @@ import type { ItineraryCategory, ItineraryItemRow } from "@/lib/services/itinera
  * while offline, mutations queue in IndexedDB instead of hitting the
  * server; on reconnect they replay in order. An add made while offline
  * keeps its temporary id until the next full page load after it replays.
+ *
+ * Phase 9 collaboration: `canEdit` hides mutation affordances for a
+ * viewer-role visitor (server-side assertCanEdit is the real boundary —
+ * this just avoids dead-end UX). A collaborator whose edit access is
+ * revoked mid-session (owner downgrades/removes them) gets a denied
+ * response from the action instead of a thrown error; that surfaces here
+ * as a rolled-back optimistic update + an explanatory toast (QA 9.4).
  */
 
 const UNDO_WINDOW_MS = 8000;
@@ -69,12 +77,24 @@ export function ItineraryBoard({
   initialItems,
   dayCount,
   dayLabels,
+  currentUserId,
+  canEdit = true,
+  ownerUserId,
+  collaboratorNames,
 }: {
   tripId: string;
   destinationCity: string;
   initialItems: ItineraryItemRow[];
   dayCount: number;
   dayLabels: string[];
+  /** Used only to fill in the optimistic item's attribution before the server confirms it. */
+  currentUserId?: string | null;
+  /** False for a viewer-role collaborator — hides add/drag/edit affordances. */
+  canEdit?: boolean;
+  /** The trip owner's user id — an item they added never shows an "added by" chip. */
+  ownerUserId?: string | null;
+  /** userId -> display name, for "added by {name}" chips (QA 9.6). */
+  collaboratorNames?: Record<string, string>;
 }) {
   const [confirmedItems, setConfirmedItems] = useState(initialItems);
   const [items, applyOptimistic] = useOptimistic(confirmedItems, reduce);
@@ -83,6 +103,15 @@ export function ItineraryBoard({
   const [addingDay, setAddingDay] = useState<number | null>(null);
   const [pendingDelete, setPendingDelete] = useState<ItineraryItemRow | null>(null);
   const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [deniedNotice, setDeniedNotice] = useState<{ key: number; message: string } | null>(
+    null,
+  );
+  const deniedNoticeIdRef = useRef(0);
+
+  function showDeniedNotice(message: string) {
+    deniedNoticeIdRef.current += 1;
+    setDeniedNotice({ key: deniedNoticeIdRef.current, message });
+  }
 
   const replayMutation = useCallback(async (mutation: QueuedMutation) => {
     switch (mutation.kind) {
@@ -119,6 +148,14 @@ export function ItineraryBoard({
     return groups;
   }, [items, dayCount]);
 
+  const attributionFor = useCallback(
+    (item: ItineraryItemRow): string | null => {
+      if (!item.createdByUserId || item.createdByUserId === ownerUserId) return null;
+      return collaboratorNames?.[item.createdByUserId] ?? "a collaborator";
+    },
+    [ownerUserId, collaboratorNames],
+  );
+
   function handleReorderLive(dayIndex: number, newOrder: ItineraryItemRow[]) {
     const withOrder = newOrder.map((item, index) => ({ ...item, sortOrder: index }));
     startTransition(() => {
@@ -134,12 +171,19 @@ export function ItineraryBoard({
       sortOrder: index,
     }));
     startTransition(async () => {
+      let success = true;
       if (isOffline) {
         await queueMutation("itinerary.reorder", { tripId, moves });
       } else {
-        await reorderItineraryItemsAction({ tripId, moves });
+        success = await reorderItineraryItemsAction({ tripId, moves });
       }
-      setConfirmedItems((prev) => reduce(prev, { type: "replaceDay", dayIndex, items: dayItems }));
+      if (success) {
+        setConfirmedItems((prev) => reduce(prev, { type: "replaceDay", dayIndex, items: dayItems }));
+      } else {
+        // Leaving confirmedItems untouched reverts the optimistic reorder
+        // once this transition settles (QA 9.4: revoked-access-mid-edit).
+        showDeniedNotice("Couldn't save — you may have lost edit access");
+      }
     });
   }
 
@@ -151,24 +195,34 @@ export function ItineraryBoard({
     const moves = [{ itemId: item.id, ...patch }];
     startTransition(async () => {
       applyOptimistic({ type: "update", itemId: item.id, patch });
+      let success = true;
       if (isOffline) {
         await queueMutation("itinerary.reorder", { tripId, moves });
       } else {
-        await reorderItineraryItemsAction({ tripId, moves });
+        success = await reorderItineraryItemsAction({ tripId, moves });
       }
-      setConfirmedItems((prev) => reduce(prev, { type: "update", itemId: item.id, patch }));
+      if (success) {
+        setConfirmedItems((prev) => reduce(prev, { type: "update", itemId: item.id, patch }));
+      } else {
+        showDeniedNotice("Couldn't save — you may have lost edit access");
+      }
     });
   }
 
   function handleEdit(itemId: string, patch: ItineraryEditPatch) {
     startTransition(async () => {
       applyOptimistic({ type: "update", itemId, patch });
+      let success = true;
       if (isOffline) {
         await queueMutation("itinerary.update", { itemId, tripId, ...patch });
       } else {
-        await updateItineraryItemAction({ itemId, tripId, ...patch });
+        success = await updateItineraryItemAction({ itemId, tripId, ...patch });
       }
-      setConfirmedItems((prev) => reduce(prev, { type: "update", itemId, patch }));
+      if (success) {
+        setConfirmedItems((prev) => reduce(prev, { type: "update", itemId, patch }));
+      } else {
+        showDeniedNotice("Couldn't save — you may have lost edit access");
+      }
     });
   }
 
@@ -187,12 +241,18 @@ export function ItineraryBoard({
     // Deferred commit: the real delete only reaches the server if the undo
     // window elapses without the user clicking "Undo" (QA 7.1).
     deleteTimerRef.current = setTimeout(() => {
+      setPendingDelete(null);
       if (isOffline) {
         void queueMutation("itinerary.delete", { itemId: item.id, tripId });
-      } else {
-        void deleteItineraryItemAction({ itemId: item.id, tripId });
+        return;
       }
-      setPendingDelete(null);
+      void deleteItineraryItemAction({ itemId: item.id, tripId }).then((success) => {
+        if (!success) {
+          // Access was revoked between the delete and now — restore the item.
+          setConfirmedItems((prev) => reduce(prev, { type: "add", item }));
+          showDeniedNotice("Couldn't delete — you may have lost edit access");
+        }
+      });
     }, UNDO_WINDOW_MS);
   }
 
@@ -223,6 +283,8 @@ export function ItineraryBoard({
       category: input.category,
       poiId: null,
       sortOrder: byDay[dayIndex]?.length ?? 0,
+      createdByUserId: currentUserId ?? null,
+      createdAt: new Date(),
     };
 
     startTransition(async () => {
@@ -241,6 +303,8 @@ export function ItineraryBoard({
           ...prev.filter((item) => item.id !== optimisticItem.id),
           created,
         ]);
+      } else {
+        showDeniedNotice("Couldn't add — you may have lost edit access");
       }
     });
   }
@@ -260,6 +324,8 @@ export function ItineraryBoard({
           category: suggestion.category,
           poiId: suggestion.poiId ?? null,
           sortOrder: 9999,
+          createdByUserId: currentUserId ?? null,
+          createdAt: new Date(),
         };
         applyOptimistic({ type: "add", item: optimisticItem });
 
@@ -282,6 +348,8 @@ export function ItineraryBoard({
             ...prev.filter((item) => item.id !== optimisticItem.id),
             created,
           ]);
+        } else {
+          showDeniedNotice("Couldn't add — you may have lost edit access");
         }
       }
     });
@@ -289,12 +357,14 @@ export function ItineraryBoard({
 
   return (
     <div className="flex flex-col gap-s6">
-      <AiSuggestButton
-        tripId={tripId}
-        city={destinationCity}
-        days={dayCount}
-        onAccept={handleAcceptAiSuggestions}
-      />
+      {canEdit ? (
+        <AiSuggestButton
+          tripId={tripId}
+          city={destinationCity}
+          days={dayCount}
+          onAccept={handleAcceptAiSuggestions}
+        />
+      ) : null}
       <div className="flex flex-col gap-s5 sm:flex-row sm:overflow-x-auto sm:pb-s3">
         {byDay.map((dayItems, dayIndex) => (
           <ItineraryDayColumn
@@ -304,6 +374,8 @@ export function ItineraryBoard({
             dayLabel={dayLabels[dayIndex] ?? ""}
             items={dayItems}
             dayCount={dayCount}
+            canEdit={canEdit}
+            attributionFor={attributionFor}
             onReorderLive={handleReorderLive}
             onReorderCommit={handleReorderCommit}
             onEdit={handleEdit}
@@ -314,17 +386,21 @@ export function ItineraryBoard({
         ))}
       </div>
 
-      <AddItemSheet
-        open={addingDay !== null}
-        onClose={() => setAddingDay(null)}
-        onSubmit={handleAdd}
-      />
+      {canEdit ? (
+        <AddItemSheet
+          open={addingDay !== null}
+          onClose={() => setAddingDay(null)}
+          onSubmit={handleAdd}
+        />
+      ) : null}
 
       <UndoToast
         visible={pendingDelete !== null}
         message={pendingDelete ? `Removed "${pendingDelete.title}"` : ""}
         onUndo={handleUndoDelete}
       />
+
+      {deniedNotice ? <Toast key={deniedNotice.key} message={deniedNotice.message} /> : null}
     </div>
   );
 }

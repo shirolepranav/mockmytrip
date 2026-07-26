@@ -1,15 +1,19 @@
 import Link from "next/link";
 import { readSessionUserId } from "@/lib/auth/session";
 import { getUser } from "@/lib/services/users";
+import { listAllSharesForUser, listCollaboratingTrips } from "@/lib/services/shares";
 import { DeleteAllButton } from "@/components/delete-all-button";
 import { MagicLinkForm } from "@/components/magic-link-form";
 import { SettingsAppearance } from "@/components/settings-appearance";
 import { SettingsNotifications } from "@/components/settings-notifications";
+import { SettingsSharing } from "@/components/settings-sharing";
 
 /*
  * Settings (WF §18). Phase 2 shipped the data-rights core (account
  * upgrade, export, hard delete); Phase 8 completes it with the
  * appearance and notifications sections plus the About/Ethics link.
+ * Phase 9 adds the "Sharing" card (task 10): manage every share link in
+ * one place, and leave any trip you were invited to.
  */
 export default async function SettingsPage({
   searchParams,
@@ -19,6 +23,9 @@ export default async function SettingsPage({
   const { auth } = await searchParams;
   const userId = await readSessionUserId();
   const user = userId ? await getUser(userId) : null;
+  const [ownedShares, collaborations] = userId
+    ? await Promise.all([listAllSharesForUser(userId), listCollaboratingTrips(userId)])
+    : [[], []];
 
   return (
     <section className="flex max-w-xl flex-col items-start gap-s6">
@@ -53,6 +60,13 @@ export default async function SettingsPage({
             initialOptIn={user?.prefsJson.notifOptIn ?? false}
             initialMoodCheckins={user?.prefsJson.moodCheckins ?? false}
           />
+        </div>
+      </div>
+
+      <div className="ticket-surface w-full p-s5">
+        <h2 className="font-display text-lg">Sharing</h2>
+        <div className="mt-s4">
+          <SettingsSharing initialShares={ownedShares} initialCollaborations={collaborations} />
         </div>
       </div>
 

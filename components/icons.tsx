@@ -233,3 +233,14 @@ export function IconMapPin(props: IconProps) {
     </svg>
   );
 }
+
+/** Share — box with an arrow leaving upward. */
+export function IconShare(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 3v12" />
+      <path d="M8 7l4-4 4 4" />
+      <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" />
+    </svg>
+  );
+}

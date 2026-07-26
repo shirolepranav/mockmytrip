@@ -4,21 +4,32 @@ import { readSessionUserId } from "@/lib/auth/session";
 import {
   getOutboundFlightContext,
   getStampForTrip,
-  getTrip,
   getTripSavingsCents,
   statusOf,
 } from "@/lib/services/trips";
+import { assertCanView } from "@/lib/services/access";
+import { listCollaborators, listShares } from "@/lib/services/shares";
 import { OwnershipError } from "@/lib/services/ownership";
 import { currentTimeMs, isDepartureDay } from "@/lib/countdown";
 import { formatDateInTz, formatMoney } from "@/lib/format";
 import { DestinationArt } from "@/components/destination-art";
 import { CountdownFlip } from "@/components/countdown-flip";
 import { PassportStamp } from "@/components/passport-stamp";
+import { CollaboratorAvatars } from "@/components/collaborator-avatars";
+import { ShareSheet } from "@/components/share-sheet";
+import { AddToCalendarButton } from "@/components/add-to-calendar-button";
 
 /*
  * Trip detail (WF §13): hero, live countdown, facts, links out to the
- * boarding pass and passport stamp. Itinerary/Packing/Explore links join
- * this page once those Phase 7 routes exist.
+ * boarding pass and passport stamp. Collaborator avatars shown when the
+ * trip is shared (owner only). Share/Add-to-calendar buttons join this
+ * header in components/share-sheet.tsx + components/add-to-calendar-button.tsx.
+ *
+ * Phase 9 access: `assertCanView` admits owner, editor, and viewer
+ * collaborators — but bookings/passport/savings/packing/Explore stay
+ * strictly owner-only (golden rule #10: collaborators touch ONLY
+ * itinerary_items), so every owner-only fetch and link below is gated on
+ * `access.role === "owner"`.
  *
  * Past-dated guard (task 6): a trip already in its "memory" status never
  * reaches CountdownFlip at all — remainingUntil's own zero-clamp is a second
@@ -37,20 +48,24 @@ export default async function TripDetailPage({
   const userId = await readSessionUserId();
   if (!userId) notFound();
 
-  let trip;
+  let access;
   try {
-    trip = await getTrip(userId, tripId);
+    access = await assertCanView(userId, tripId);
   } catch (error) {
     if (error instanceof OwnershipError) notFound();
     throw error;
   }
+  const { trip, role } = access;
+  const isOwner = role === "owner";
 
   const nowMs = currentTimeMs();
   const status = statusOf(trip, new Date(nowMs));
-  const [flightContext, stamp, savingsCents] = await Promise.all([
-    getOutboundFlightContext(userId, tripId),
-    getStampForTrip(userId, tripId),
-    getTripSavingsCents(userId, tripId),
+  const [flightContext, stamp, savingsCents, collaborators, shares] = await Promise.all([
+    isOwner ? getOutboundFlightContext(userId, tripId) : Promise.resolve(null),
+    isOwner ? getStampForTrip(userId, tripId) : Promise.resolve(null),
+    isOwner ? getTripSavingsCents(userId, tripId) : Promise.resolve(null),
+    isOwner ? listCollaborators(userId, tripId) : Promise.resolve([]),
+    isOwner ? listShares(userId, tripId) : Promise.resolve([]),
   ]);
 
   const originTz = flightContext?.originTz ?? "UTC";
@@ -69,11 +84,25 @@ export default async function TripDetailPage({
           {trip.destinationCity}
           {trip.destinationCountry ? `, ${trip.destinationCountry}` : ""}
         </p>
-        <h1 className="font-display text-3xl">{trip.title}</h1>
+        <div className="flex flex-wrap items-center justify-between gap-s3">
+          <h1 className="font-display text-3xl">{trip.title}</h1>
+          {isOwner && collaborators.length > 0 ? (
+            <CollaboratorAvatars collaborators={collaborators} />
+          ) : null}
+        </div>
         <p className="text-sm text-ink-soft">
           {formatDateInTz(trip.startDate.getTime(), originTz)} –{" "}
           {formatDateInTz(trip.endDate.getTime(), originTz)}
         </p>
+        {!isOwner ? (
+          <p
+            data-testid="collaborator-role-note"
+            className="text-sm text-ink-soft"
+          >
+            You&apos;re {role === "editor" ? "helping plan" : "viewing"} this
+            trip as a collaborator.
+          </p>
+        ) : null}
       </header>
 
       {status === "upcoming" ? (
@@ -153,7 +182,7 @@ export default async function TripDetailPage({
       ) : null}
 
       <div className="flex flex-wrap gap-s3">
-        {flightContext ? (
+        {isOwner && flightContext ? (
           <Link
             href={`/trip/confirmation/${flightContext.bookingId}`}
             className="press-physical inline-flex min-h-11 items-center rounded-pill bg-ink px-s5 font-semibold text-paper2"
@@ -161,39 +190,49 @@ export default async function TripDetailPage({
             Boarding pass
           </Link>
         ) : null}
-        <Link
-          href="/passport"
-          className="press-physical inline-flex min-h-11 items-center rounded-pill border border-line px-s5 font-semibold text-ink"
-        >
-          Passport
-        </Link>
+        {isOwner ? (
+          <Link
+            href="/passport"
+            className="press-physical inline-flex min-h-11 items-center rounded-pill border border-line px-s5 font-semibold text-ink"
+          >
+            Passport
+          </Link>
+        ) : null}
         <Link
           href={`/trips/${trip.id}/itinerary`}
           className="press-physical inline-flex min-h-11 items-center rounded-pill border border-line px-s5 font-semibold text-ink"
         >
           Itinerary
         </Link>
-        <Link
-          href={`/trips/${trip.id}/packing`}
-          className="press-physical inline-flex min-h-11 items-center rounded-pill border border-line px-s5 font-semibold text-ink"
-        >
-          Packing
-        </Link>
-        <Link
-          href={`/trips/${trip.id}/explore`}
-          className="press-physical inline-flex min-h-11 items-center rounded-pill border border-line px-s5 font-semibold text-ink"
-        >
-          Explore {trip.destinationCity}
-        </Link>
+        {isOwner ? (
+          <Link
+            href={`/trips/${trip.id}/packing`}
+            className="press-physical inline-flex min-h-11 items-center rounded-pill border border-line px-s5 font-semibold text-ink"
+          >
+            Packing
+          </Link>
+        ) : null}
+        {isOwner ? (
+          <Link
+            href={`/trips/${trip.id}/explore`}
+            className="press-physical inline-flex min-h-11 items-center rounded-pill border border-line px-s5 font-semibold text-ink"
+          >
+            Explore {trip.destinationCity}
+          </Link>
+        ) : null}
+        {isOwner ? <ShareSheet tripId={trip.id} initialShares={shares} initialCollaborators={collaborators} /> : null}
+        <AddToCalendarButton tripId={trip.id} />
       </div>
 
-      <p className="text-sm text-ink-soft">
-        You saved{" "}
-        <span className="font-mono font-bold text-mint-ok">
-          {formatMoney(savingsCents)}
-        </span>{" "}
-        on this pretend trip — every price here is $0.00, always.
-      </p>
+      {isOwner && savingsCents !== null ? (
+        <p className="text-sm text-ink-soft">
+          You saved{" "}
+          <span className="font-mono font-bold text-mint-ok">
+            {formatMoney(savingsCents)}
+          </span>{" "}
+          on this pretend trip — every price here is $0.00, always.
+        </p>
+      ) : null}
     </section>
   );
 }
