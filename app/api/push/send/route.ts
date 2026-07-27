@@ -14,6 +14,14 @@ import {
  * in constant time, the same pattern lib/auth/session.ts already uses for
  * the session cookie signature.
  *
+ * Not usable under static export (reads a live request header) — see
+ * TECH_SPEC §12.6. Deliberately not marked `force-static`: that export is
+ * shared with the real web build and would freeze the route at build
+ * time, breaking it in production. Moot for native anyway: there is no
+ * Vercel Cron inside a Capacitor build.
+ */
+
+/*
  * Phase 9 adds the owner "new ideas from collaborators" digest as a second
  * pass over the same cron tick — no new route or vercel.json entry needed.
  */

@@ -237,6 +237,108 @@ Use `Capacitor.isNativePlatform()` / `Capacitor.getPlatform()` to branch web-onl
 - **Service workers do not run reliably in the iOS WKWebView** — do NOT depend on Serwist/Workbox for offline or push inside the native app; use native plugins. Keep the SW strictly a web-PWA enhancement, gated off on native.
 - **`server.url` is not intended for production** (App Store rejection risk); bundle static assets locally. For OTA web-layer updates later, use a live-update plugin (e.g., Capgo), not `server.url`.
 
+### 12.6 Phase 10 static-export dry-run findings (`npm run mobile`)
+
+Ran `NEXT_PUBLIC_IS_NATIVE=true next build` after all of Phase 10's web-only
+additions (security headers, robots/sitemap/OG images, Sentry, privacy
+page) to confirm nothing broke static-export compatibility, and to
+empirically test §12.1's claims against the current Next.js 16.2.12. Actual
+findings, more precise than §12.1's summary:
+
+**Confirmed no-op, exactly as expected:**
+- `headers()` in `next.config.ts` is skipped on the native branch already
+  (never reaches `output: "export"` — Next.js errors if the two are
+  combined, so this has to be branch-guarded, not just discovered here).
+- Sentry's server-side `instrumentation.ts` init is skipped via the same
+  `NEXT_PUBLIC_IS_NATIVE` check; the client-side init
+  (`instrumentation-client.ts`) is also skipped there — no DSN, no
+  init call, no-op on native.
+- `app/dev/layout.tsx`'s `notFound()` guard is a plain React check
+  (`NODE_ENV === "production"`), no server/config dependency — works
+  identically under static export.
+- `app/global-error.tsx` is a React error boundary, not server-dependent —
+  works identically under static export.
+
+**Needed a small, genuinely-static fix (`export const dynamic =
+"force-static"`):** file-convention routes with **no dynamic segment** that
+are static in substance but Next.js requires an explicit opt-in for under
+`output: "export"`: `app/manifest.ts`, `app/robots.ts`, `app/sitemap.ts`,
+`app/opengraph-image.tsx`, `app/twitter-image.tsx`. These now build and
+work correctly under static export — a real Capacitor build gets a working
+manifest/robots/sitemap/OG image baked in at build time.
+
+**Cannot work under static export at all (confirmed empirically, not just
+asserted from §12.1's general rule) — and, critically, cannot be forced to
+build via a quick per-route config fix without breaking the real web
+deploy:**
+
+The first pass at this dry run tried adding `export const dynamic =
+"force-static"` (and, for dynamic-segment routes, also
+`generateStaticParams() { return []; }`) to every route that blocked the
+build, purely to get `next build --output=export` to finish. **That was
+wrong and got reverted.** `dynamic`/`generateStaticParams` are ordinary
+file-level exports — they are not conditional on `NEXT_PUBLIC_IS_NATIVE`
+and apply identically to the real web build. Verified empirically before
+reverting:
+- With `force-static` on `app/auth/verify/route.ts`, a rebuilt **web**
+  server started returning a frozen, build-time-baked redirect
+  (`Location: http://localhost:3000/settings?auth=invalid`, the wrong
+  port, ignoring the actual request) for every visit, regardless of the
+  real token or host — magic-link sign-in would have been silently broken
+  in production.
+- With `generateStaticParams() { return []; }` alone (no `force-static`)
+  on `app/(app)/flight/[id]/page.tsx`, a rebuilt **web** server threw
+  `DYNAMIC_SERVER_USAGE` on every real request — adding
+  `generateStaticParams` was enough by itself to make Next attempt static
+  generation for a page that calls `readSessionUserId()` (`cookies()`),
+  which static generation cannot do.
+
+Both were reverted; none of the routes below carry any Phase 10 changes.
+`npm run mobile` fails to complete for them, and that failure is the
+correct, expected state — not a Phase 10 regression, and not something a
+route-level export can safely paper over:
+
+- `app/auth/verify/route.ts` — reads a live request's `?token=` query
+  param and writes a `Set-Cookie` response header.
+- `app/api/export`, `app/api/push/subscribe`, `app/api/push/send` — each
+  reads the live session cookie or a cron auth header.
+- `app/api/calendar/[tripId]`, `app/api/boarding-pass/[bookingId]`,
+  `app/api/itinerary/[tripId]/pdf`, and the equivalent **pages**
+  `app/(app)/flight/[id]`, `app/(app)/hotel/[id]`,
+  `app/(app)/trip/confirmation/[bookingId]`, `app/(app)/trips/[tripId]`,
+  `app/(app)/explore/[city]`, `app/s/[token]` — each has a dynamic path
+  segment (`tripId`/`bookingId`/`id`/`token`) with no fixed build-time set
+  (they're per-user database rows or query-derived offers), which trips a
+  separate, sharper limit: Next's static-export validator
+  (`next/dist/build/index.js`, error code `E87`) requires
+  `generateStaticParams()` to return **at least one** param object —
+  `return []` doesn't satisfy it (`prerenderedRoutes.length > 0` is the
+  literal check) — and, as confirmed above, returning a real value isn't
+  an option either without breaking the web build.
+
+**What this actually means for a future real Capacitor wrap:** the routes
+above are not a bug to fix — they're the concrete shape of the "keep the
+canonical data path client → external API" guidance
+§12.1 already gives, now backed by a specific list. A real native build
+needs those specific pages/routes converted to **static shells that fetch
+their per-user data client-side from the deployed Wanderlost API** after
+mount (using the exact `lib/services/*` functions they already call
+server-side, exposed over HTTP) rather than reading `params.tripId` /
+`readSessionUserId()` at render time. That conversion — not a config flag
+— is the real remaining Capacitor work, and per this project's current
+scope it's deliberately **out of scope for Phase 10** (Phase 10 proves the
+dry run surfaces exactly this, and stops there; the actual native wrap is
+future work, Tier 3 per `docs/PRD.md` §7.3).
+
+**Bottom line:** `npm run mobile` (Turbopack, no `--webpack`) succeeds for
+the entire static/marketing/content surface of the app (landing, about,
+privacy, welcome, robots/sitemap/manifest/OG images, the `/dev` guard, the
+global error boundary). It does **not** currently produce a working
+`/out` for the seven session/param-dependent routes listed above — that's
+expected given the app's architecture (Server Components reading the DB
+directly), not a regression, and the fix is the client-fetch-shell
+conversion described above, not a smaller patch.
+
 ## 13. Key Decisions & Rationale
 - **Neon over Supabase:** scale-to-zero after 5 min idle, generous project count, first-class Vercel integration, HTTP driver for edge/serverless. Supabase only if bundled auth/storage/realtime is later wanted.
 - **Motion + GSAP together, not either/or:** Motion is declarative and React-native for UI/route/gesture; GSAP owns millisecond-precise timeline set-pieces. Never animate the same property on the same element with both. GSAP is fully free since 2025.

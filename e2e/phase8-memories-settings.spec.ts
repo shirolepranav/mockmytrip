@@ -104,7 +104,7 @@ test.describe("@phase8 Settings appearance", () => {
     );
   });
 
-  test("8.11 theme switch applies night-flight tokens and stays AA-contrast clean", async ({
+  test("8.11 theme switch applies night-flight tokens and stays AA-contrast clean @a11y", async ({
     page,
   }) => {
     await page.goto("/settings");

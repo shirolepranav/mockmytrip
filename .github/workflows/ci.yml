@@ -8,7 +8,7 @@ on:
 env:
   # Phase tag for changed-scope e2e regression (bump per phase, or override
   # via workflow_dispatch). Ethics guards run on every commit from Phase 5.
-  CURRENT_PHASE_TAG: "@phase9"
+  CURRENT_PHASE_TAG: "@phase10"
 
 jobs:
   quality:
@@ -26,10 +26,21 @@ jobs:
         run: npm run lint:styles
       - name: Referral-gating gate (ethics)
         run: npm run lint:ethics
+      - name: Dark-pattern gate (ethics)
+        run: npm run lint:dark-patterns
       - name: Typecheck
         run: npm run typecheck
       - name: Unit & component tests
         run: npm run test -- --run
+      - name: Dependency audit (informational)
+        # Non-blocking: as of Phase 10, `next`'s latest stable (16.2.12) has
+        # an open high-severity advisory range with no patched stable
+        # release yet (fix would require downgrading to next@9, which is
+        # not viable). Dependabot (.github/dependabot.yml) will open a PR
+        # the moment a real fix ships. This step still surfaces new/
+        # different findings in the CI log for a human to notice.
+        run: npm audit --omit=dev --audit-level=high
+        continue-on-error: true
 
   e2e:
     runs-on: ubuntu-latest
@@ -47,3 +58,28 @@ jobs:
         run: npx playwright test --grep "${{ env.CURRENT_PHASE_TAG }}"
       - name: Ethics guards (required on every commit; Phase 5 payment/simulation guards + Phase 9 referral-gating/calendar-labeling guards)
         run: npx playwright test e2e/ethics --grep "@ethics"
+
+  lighthouse:
+    runs-on: ubuntu-latest
+    needs: quality
+    env:
+      # Same insecure-but-fine-for-CI value the e2e job's dev server also
+      # runs without ever needing to set explicitly — but the production
+      # build's boot-time check (instrumentation.ts) requires it to be set
+      # to *something* once NODE_ENV=production, which `next start` sets.
+      AUTH_SECRET: lighthouse-ci-only-not-a-real-secret
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build production bundle
+        run: npm run build
+      - name: Seed Lighthouse fixture (checkout-ready draft + session cookie)
+        # No DATABASE_URL set — same embedded, file-backed PGlite fallback
+        # the e2e job's dev server already relies on (lib/db/client.ts).
+        run: echo "LH_FIXTURE_COOKIE=$(npx tsx scripts/seed-lighthouse-fixture.mts | tail -1)" >> "$GITHUB_ENV"
+      - name: Lighthouse CI
+        run: npm run lh

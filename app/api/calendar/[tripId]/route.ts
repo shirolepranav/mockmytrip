@@ -13,6 +13,14 @@ import { OwnershipError } from "@/lib/services/ownership";
  * scoped to this exact tripId — the "Add to calendar" button lives on the
  * public /s/[token] page too (WF §20d), where an anonymous visitor has no
  * session at all. Every failure mode collapses to the same generic 404.
+ *
+ * Not usable under static export (dynamic [tripId] param plus the live
+ * session/token) — see TECH_SPEC §12.6. Deliberately not marked
+ * `force-static`/given a `generateStaticParams`: neither actually
+ * satisfies Next's static exporter for this route shape (confirmed
+ * empirically — `generateStaticParams() { return [] }` doesn't count, and
+ * `force-static` freezes the route at build time and breaks it in the
+ * real web build, which shares this export).
  */
 export async function GET(
   request: NextRequest,

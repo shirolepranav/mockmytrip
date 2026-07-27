@@ -233,7 +233,7 @@ test.describe("@phase6 Virtual Passport", () => {
 });
 
 test.describe("@phase6 viewports & accessibility", () => {
-  test("6.11 /trips, trip detail, and /passport are clean across viewports", async ({
+  test("6.11 /trips, trip detail, and /passport are clean across viewports @a11y", async ({
     page,
   }) => {
     await bookTrip(page, { from: "JFK", to: "LIS", departDate: isoDaysFromNow(11) });

@@ -166,7 +166,7 @@ test.describe("@phase5 checkout & boarding pass", () => {
     await expect(page.getByTestId("continue-to-checkout")).toBeVisible();
   });
 
-  test("5.11 viewports: no horizontal scroll, 44px targets, axe clean", async ({
+  test("5.11 viewports: no horizontal scroll, 44px targets, axe clean @a11y", async ({
     page,
   }) => {
     await arriveAtCheckout(page);

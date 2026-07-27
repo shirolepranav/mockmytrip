@@ -46,8 +46,35 @@ async function tripId(page: Page): Promise<string> {
   return body.trips[0].id as string;
 }
 
+/*
+ * The first booking in this browser context flips `hasFirstBoardingPass()`
+ * (lib/pwa/install-prompt-state.ts), so the very next navigation away from
+ * the confirmation page auto-opens the contextual install-prompt sheet
+ * (components/install-prompt.tsx) — on Playwright's iPhone/iPad device
+ * presets specifically, since their emulated user-agent string matches
+ * `isIosSafari()`'s check even though the engine is Chromium underneath.
+ * Its backdrop then intercepts clicks on whatever the test does next.
+ *
+ * Pre-seed the same "already dismissed" localStorage key the app itself
+ * writes on a real dismissal (recordDismissal() in that file), via
+ * addInitScript so it's set before any page script runs on every
+ * navigation in this context. This has to be proactive, not a reactive
+ * "click dismiss if visible right now" check — that raced the sheet's own
+ * mount timing and was flaky in CI (passed locally, ~20% failure rate on
+ * GitHub's runners) even though it never flaked locally.
+ */
+async function suppressInstallPrompt(page: Page) {
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      "wanderlost.install-prompt-dismissed-at",
+      String(Date.now()),
+    );
+  });
+}
+
 test.describe("@phase9 @ethics no referral gating", () => {
   test("the share sheet never gates anything behind inviting or sharing", async ({ page }) => {
+    await suppressInstallPrompt(page);
     await bookTrip(page);
     const trip = await tripId(page);
     await page.goto(`/trips/${trip}`);
@@ -57,6 +84,7 @@ test.describe("@phase9 @ethics no referral gating", () => {
   });
 
   test("the public shared page never gates anything behind inviting or sharing", async ({ page }) => {
+    await suppressInstallPrompt(page);
     await bookTrip(page);
     const trip = await tripId(page);
     await page.goto(`/trips/${trip}`);

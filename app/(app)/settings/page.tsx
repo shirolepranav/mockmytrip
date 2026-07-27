@@ -88,12 +88,20 @@ export default async function SettingsPage({
         </div>
       </div>
 
-      <Link
-        href="/about"
-        className="press-physical inline-flex min-h-11 items-center rounded-pill border border-line px-s5 font-semibold text-ink"
-      >
-        About &amp; Ethics
-      </Link>
+      <div className="flex flex-wrap gap-s3">
+        <Link
+          href="/about"
+          className="press-physical inline-flex min-h-11 items-center rounded-pill border border-line px-s5 font-semibold text-ink"
+        >
+          About &amp; Ethics
+        </Link>
+        <Link
+          href="/privacy"
+          className="press-physical inline-flex min-h-11 items-center rounded-pill border border-line px-s5 font-semibold text-ink"
+        >
+          Privacy Policy
+        </Link>
+      </div>
     </section>
   );
 }

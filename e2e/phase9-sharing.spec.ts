@@ -49,6 +49,33 @@ async function tripId(page: Page): Promise<string> {
   return body.trips[0].id as string;
 }
 
+/*
+ * The first booking in this browser context flips `hasFirstBoardingPass()`
+ * (lib/pwa/install-prompt-state.ts), so the very next navigation away from
+ * the confirmation page auto-opens the contextual install-prompt sheet
+ * (components/install-prompt.tsx) — on Playwright's iPhone/iPad device
+ * presets specifically, since their emulated user-agent string matches
+ * `isIosSafari()`'s check even though the engine is Chromium underneath.
+ * Its backdrop then intercepts clicks on whatever the test does next.
+ *
+ * Pre-seed the same "already dismissed" localStorage key the app itself
+ * writes on a real dismissal (recordDismissal() in that file), via
+ * addInitScript so it's set before any page script runs on every
+ * navigation in this context — call this once per page/context, before
+ * bookTrip(). This has to be proactive, not a reactive "click dismiss if
+ * visible right now" check — that raced the sheet's own mount timing and
+ * was flaky in CI (passed locally, failed intermittently on GitHub's
+ * runners) even though it never flaked locally.
+ */
+async function suppressInstallPrompt(page: Page) {
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      "wanderlost.install-prompt-dismissed-at",
+      String(Date.now()),
+    );
+  });
+}
+
 /** Opens the (already-mounted) share sheet, picks a permission, generates a link, returns its token. */
 async function generateShareLink(page: Page, permission: "view" | "edit"): Promise<string> {
   await page.getByTestId("open-share-sheet").click();
@@ -67,6 +94,7 @@ test.describe("@phase9 Share link creation & public view", () => {
     page,
     browser,
   }) => {
+    await suppressInstallPrompt(page);
     await bookTrip(page, { from: "JFK", to: "LIS", departDate: isoDaysFromNow(10) });
     const trip = await tripId(page);
     await page.goto(`/trips/${trip}`);
@@ -89,6 +117,7 @@ test.describe("@phase9 Share link creation & public view", () => {
     page,
     browser,
   }) => {
+    await suppressInstallPrompt(page);
     await bookTrip(page, { from: "JFK", to: "LIS", departDate: isoDaysFromNow(10) });
     const trip = await tripId(page);
     await page.goto(`/trips/${trip}`);
@@ -111,6 +140,7 @@ test.describe("@phase9 Share link creation & public view", () => {
   test("9.4 revoking a link makes /s/[token] show the tucked-away state immediately", async ({
     page,
   }) => {
+    await suppressInstallPrompt(page);
     await bookTrip(page, { from: "JFK", to: "LIS", departDate: isoDaysFromNow(10) });
     const trip = await tripId(page);
     await page.goto(`/trips/${trip}`);
@@ -126,6 +156,7 @@ test.describe("@phase9 Share link creation & public view", () => {
   });
 
   test("9.10 the 11th share created in a day is rate-limited; only 10 exist", async ({ page }) => {
+    await suppressInstallPrompt(page);
     await bookTrip(page, { from: "JFK", to: "LIS", departDate: isoDaysFromNow(10) });
     const trip = await tripId(page);
     await page.goto(`/trips/${trip}`);
@@ -148,6 +179,7 @@ test.describe("@phase9 Collaboration", () => {
   }) => {
     const ownerContext = await browser.newContext();
     const ownerPage = await ownerContext.newPage();
+    await suppressInstallPrompt(ownerPage);
     await bookTrip(ownerPage, { from: "JFK", to: "LIS", departDate: isoDaysFromNow(10) });
     const trip = await tripId(ownerPage);
     await ownerPage.goto(`/trips/${trip}`);
@@ -180,6 +212,7 @@ test.describe("@phase9 Collaboration", () => {
   }) => {
     const ownerContext = await browser.newContext();
     const ownerPage = await ownerContext.newPage();
+    await suppressInstallPrompt(ownerPage);
     await bookTrip(ownerPage, { from: "JFK", to: "LIS", departDate: isoDaysFromNow(10) });
     const trip = await tripId(ownerPage);
     await ownerPage.goto(`/trips/${trip}`);
@@ -205,6 +238,7 @@ test.describe("@phase9 Collaboration", () => {
   }) => {
     const ownerContext = await browser.newContext();
     const ownerPage = await ownerContext.newPage();
+    await suppressInstallPrompt(ownerPage);
     await bookTrip(ownerPage, { from: "JFK", to: "LIS", departDate: isoDaysFromNow(10) });
     const trip = await tripId(ownerPage);
     await ownerPage.goto(`/trips/${trip}`);
@@ -256,6 +290,7 @@ test.describe("@phase9 Calendar export", () => {
     page,
     browser,
   }) => {
+    await suppressInstallPrompt(page);
     await bookTrip(page, { from: "JFK", to: "LIS", departDate: isoDaysFromNow(10) });
     const trip = await tripId(page);
     await page.goto(`/trips/${trip}`);
@@ -273,10 +308,11 @@ test.describe("@phase9 Calendar export", () => {
 });
 
 test.describe("@phase9 viewports & accessibility", () => {
-  test("9.18 share sheet and shared page are usable at 390px with 0 critical axe violations", async ({
+  test("9.18 share sheet and shared page are usable at 390px with 0 critical axe violations @a11y", async ({
     page,
     browser,
   }) => {
+    await suppressInstallPrompt(page);
     await bookTrip(page, { from: "JFK", to: "LIS", departDate: isoDaysFromNow(10) });
     const trip = await tripId(page);
     await page.setViewportSize({ width: 390, height: 844 });

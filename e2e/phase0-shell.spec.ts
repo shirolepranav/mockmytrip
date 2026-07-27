@@ -77,7 +77,7 @@ test.describe("@phase0 shell", () => {
     await context.close();
   });
 
-  test("axe: no critical violations on shell routes", async ({ page }) => {
+  test("axe: no critical violations on shell routes @a11y", async ({ page }) => {
     for (const route of ["/", "/trips", "/dev/components"]) {
       await page.goto(route);
       const results = await new AxeBuilder({ page }).analyze();

@@ -7,13 +7,30 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { SwRegister } from "@/components/sw-register";
 import { InstallPrompt } from "@/components/install-prompt";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://wanderlost.app";
+const DESCRIPTION =
+  "A travel simulation for the joy of planning. Book pretend flights and hotels, pay $0.00, and savor the anticipation. Nothing is real — that's the point.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "Wanderlost — All the thrill. None of the jet lag.",
     template: "%s · Wanderlost",
   },
-  description:
-    "A travel simulation for the joy of planning. Book pretend flights and hotels, pay $0.00, and savor the anticipation. Nothing is real — that's the point.",
+  description: DESCRIPTION,
+  openGraph: {
+    type: "website",
+    siteName: "Wanderlost",
+    url: "/",
+    title: "Wanderlost — All the thrill. None of the jet lag.",
+    description: DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Wanderlost — All the thrill. None of the jet lag.",
+    description: DESCRIPTION,
+  },
+  robots: { index: true, follow: true },
 };
 
 export const viewport: Viewport = {

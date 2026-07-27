@@ -77,9 +77,14 @@ export default function LandingPage() {
             Wanderlost is a simulation. No real bookings, ever — just the
             science-backed happiness of looking forward to a trip.
           </p>
-          <Link href="/about" className="underline hover:text-ink">
-            Why this exists (the ethics &amp; the science)
-          </Link>
+          <div className="flex flex-wrap gap-s4">
+            <Link href="/about" className="underline hover:text-ink">
+              Why this exists (the ethics &amp; the science)
+            </Link>
+            <Link href="/privacy" className="underline hover:text-ink">
+              Privacy Policy
+            </Link>
+          </div>
         </div>
       </footer>
     </div>
