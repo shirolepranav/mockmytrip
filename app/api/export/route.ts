@@ -2,7 +2,14 @@ import { NextResponse } from "next/server";
 import { readSessionUserId } from "@/lib/auth/session";
 import { exportData } from "@/lib/services/users";
 
-/** Data export (golden rule #7): full JSON of the session user's rows. */
+/*
+ * Data export (golden rule #7): full JSON of the session user's rows.
+ * Not usable under static export (reads the live session cookie) — see
+ * TECH_SPEC §12.6. Deliberately not marked `force-static`: that export is
+ * shared with the real web build and freezes the route at build time,
+ * breaking it in production (confirmed empirically in Phase 10 against
+ * app/auth/verify/route.ts before this route was spared the same mistake).
+ */
 export async function GET() {
   const userId = await readSessionUserId();
   if (!userId) {

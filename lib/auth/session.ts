@@ -12,7 +12,15 @@ export const SESSION_COOKIE = "wl_session";
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 400; // ~13 months
 
 function secret(): string {
-  return process.env.AUTH_SECRET ?? "wanderlost-dev-secret-change-me";
+  const value = process.env.AUTH_SECRET;
+  if (value) return value;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "AUTH_SECRET is not set. Refusing to sign/verify sessions in " +
+        "production with the insecure dev fallback secret.",
+    );
+  }
+  return "wanderlost-dev-secret-change-me";
 }
 
 export function signSessionValue(userId: string): string {

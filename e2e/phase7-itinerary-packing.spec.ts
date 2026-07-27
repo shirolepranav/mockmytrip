@@ -213,7 +213,7 @@ test.describe("@phase7 Packing list", () => {
 });
 
 test.describe("@phase7 viewports & accessibility", () => {
-  test("7.10 itinerary and packing are usable at 390px with 0 critical axe violations", async ({
+  test("7.10 itinerary and packing are usable at 390px with 0 critical axe violations @a11y", async ({
     page,
   }) => {
     await bookTrip(page, { from: "JFK", to: "LIS", departDate: isoDaysFromNow(10) });

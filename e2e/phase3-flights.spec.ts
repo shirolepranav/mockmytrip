@@ -188,7 +188,7 @@ test.describe("@phase3 flight search", () => {
     await context.close();
   });
 
-  test("3.11 viewports: no horizontal scroll, 44px targets, axe clean", async ({
+  test("3.11 viewports: no horizontal scroll, 44px targets, axe clean @a11y", async ({
     page,
   }) => {
     for (const route of [

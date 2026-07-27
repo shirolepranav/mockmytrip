@@ -197,7 +197,7 @@ test.describe("@phase4 hotel search & trip summary", () => {
     );
   });
 
-  test("4.10 viewports: no horizontal scroll, 44px targets, axe clean", async ({
+  test("4.10 viewports: no horizontal scroll, 44px targets, axe clean @a11y", async ({
     page,
   }) => {
     await selectFirstFlight(page);

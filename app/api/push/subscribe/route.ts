@@ -7,6 +7,13 @@ import { removeSubscription, upsertSubscription } from "@/lib/services/push";
  * Web push subscribe/unsubscribe (Phase 8 task 4). Both also flip
  * `users.prefs_json.notifOptIn` (via lib/services/push.ts) so the Settings
  * toggle and the actual subscription rows never drift out of sync.
+ *
+ * Not usable under static export (reads the live session cookie) — see
+ * TECH_SPEC §12.6. Deliberately not marked `force-static`: that export is
+ * shared with the real web build and would freeze the route at build
+ * time, breaking it in production. Moot for native anyway: web push
+ * itself doesn't apply to a Capacitor build (TS §12 — use
+ * @capacitor/push-notifications instead).
  */
 
 const subscriptionSchema = z.object({

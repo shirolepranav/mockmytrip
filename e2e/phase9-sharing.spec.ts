@@ -273,7 +273,7 @@ test.describe("@phase9 Calendar export", () => {
 });
 
 test.describe("@phase9 viewports & accessibility", () => {
-  test("9.18 share sheet and shared page are usable at 390px with 0 critical axe violations", async ({
+  test("9.18 share sheet and shared page are usable at 390px with 0 critical axe violations @a11y", async ({
     page,
     browser,
   }) => {

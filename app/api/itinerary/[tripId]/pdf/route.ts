@@ -8,7 +8,16 @@ import { OwnershipError } from "@/lib/services/ownership";
  * Itinerary PDF download. Auth + ownership checked before any render; every
  * failure mode collapses to the same generic 404 — no info leak, mirroring
  * app/api/boarding-pass/[bookingId]/route.ts (QA 5.9-style forged-id denial).
+ *
+ * Not usable under static export (dynamic [tripId] param plus the live
+ * session) — see TECH_SPEC §12.6. Deliberately not marked
+ * `force-static`/given a `generateStaticParams`: neither actually
+ * satisfies Next's static exporter for this route shape (confirmed
+ * empirically — `generateStaticParams() { return [] }` doesn't count, and
+ * `force-static` freezes the route at build time and breaks it in the
+ * real web build, which shares this export).
  */
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ tripId: string }> },

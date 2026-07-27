@@ -47,7 +47,8 @@ Canonical docs: `docs/PRD.md`, `docs/TECH_SPEC.md`, `docs/DESIGN_SYSTEM.md`,
   shared `lib/services/*` function so a static-export (Capacitor) build can call an external API.
   Do NOT put business logic only inside Server Actions.
 - Synthetic engine in `lib/engine/*` (airports/distance/schedule/pricing/names/hotels), deterministic via seed.
-- DB: Neon Postgres + Drizzle (`lib/db`). Auth: guest-first + magic link (Auth.js + Resend).
+- DB: Neon Postgres + Drizzle (`lib/db`). Auth: guest-first + magic link — hand-rolled HMAC-signed
+  session cookie (`lib/auth/session.ts`) + token service (`lib/services/auth.ts`), not Auth.js. Email via Resend.
 - Email: Resend + React Email. PDF: @react-pdf/renderer + qrcode. PWA: Serwist (`app/sw.ts`, `app/manifest.ts`).
 - Animation: Motion for UI/route/gesture; GSAP (+ useGSAP) for set-pieces; canvas-confetti; Rive optional.
   Dynamic-import GSAP/Rive/confetti so they don't bloat initial JS.
