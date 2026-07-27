@@ -41,6 +41,23 @@ async function tripId(page: Page): Promise<string> {
   return body.trips[0].id as string;
 }
 
+/*
+ * The first booking in this browser context flips `hasFirstBoardingPass()`
+ * (lib/pwa/install-prompt-state.ts), so the very next navigation away from
+ * the confirmation page auto-opens the contextual install-prompt sheet
+ * (components/install-prompt.tsx) — on Playwright's iPhone/iPad device
+ * presets specifically, since their emulated user-agent string matches
+ * `isIosSafari()`'s check even though the engine is Chromium underneath.
+ * Its backdrop then intercepts clicks on whatever the test does next.
+ * Dismiss it if present rather than let it block the real assertion below.
+ */
+async function dismissInstallPromptIfPresent(page: Page) {
+  const dismiss = page.getByTestId("install-prompt-dismiss");
+  if (await dismiss.isVisible().catch(() => false)) {
+    await dismiss.click();
+  }
+}
+
 test.describe("@phase9 @ethics calendar labeling", () => {
   test("the .ics export self-labels as pretend, opens with the disclaimer, and is Free/Tentative", async ({
     page,
@@ -74,6 +91,7 @@ test.describe("@phase9 @ethics calendar labeling", () => {
     await bookTrip(page);
     const trip = await tripId(page);
     await page.goto(`/trips/${trip}`);
+    await dismissInstallPromptIfPresent(page);
 
     const requestUrls: string[] = [];
     page.on("request", (request) => requestUrls.push(request.url()));

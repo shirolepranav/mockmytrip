@@ -49,8 +49,26 @@ async function tripId(page: Page): Promise<string> {
   return body.trips[0].id as string;
 }
 
+/*
+ * The first booking in this browser context flips `hasFirstBoardingPass()`
+ * (lib/pwa/install-prompt-state.ts), so the very next navigation away from
+ * the confirmation page auto-opens the contextual install-prompt sheet
+ * (components/install-prompt.tsx) — on Playwright's iPhone/iPad device
+ * presets specifically, since their emulated user-agent string matches
+ * `isIosSafari()`'s check even though the engine is Chromium underneath.
+ * Its backdrop then intercepts clicks on whatever the test does next.
+ * Dismiss it if present rather than let it block the real assertion below.
+ */
+async function dismissInstallPromptIfPresent(page: Page) {
+  const dismiss = page.getByTestId("install-prompt-dismiss");
+  if (await dismiss.isVisible().catch(() => false)) {
+    await dismiss.click();
+  }
+}
+
 /** Opens the (already-mounted) share sheet, picks a permission, generates a link, returns its token. */
 async function generateShareLink(page: Page, permission: "view" | "edit"): Promise<string> {
+  await dismissInstallPromptIfPresent(page);
   await page.getByTestId("open-share-sheet").click();
   await page.getByLabel(permission === "edit" ? "Can add ideas" : "View only").check();
   await page.getByTestId("generate-share-link").click();
@@ -129,6 +147,7 @@ test.describe("@phase9 Share link creation & public view", () => {
     await bookTrip(page, { from: "JFK", to: "LIS", departDate: isoDaysFromNow(10) });
     const trip = await tripId(page);
     await page.goto(`/trips/${trip}`);
+    await dismissInstallPromptIfPresent(page);
     await page.getByTestId("open-share-sheet").click();
 
     for (let i = 0; i < 10; i++) {
