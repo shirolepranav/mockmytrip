@@ -54,31 +54,40 @@ async function tripId(page: Page): Promise<string> {
  * presets specifically, since their emulated user-agent string matches
  * `isIosSafari()`'s check even though the engine is Chromium underneath.
  * Its backdrop then intercepts clicks on whatever the test does next.
- * Dismiss it if present rather than let it block the real assertion below.
+ *
+ * Pre-seed the same "already dismissed" localStorage key the app itself
+ * writes on a real dismissal (recordDismissal() in that file), via
+ * addInitScript so it's set before any page script runs on every
+ * navigation in this context. This has to be proactive, not a reactive
+ * "click dismiss if visible right now" check — that raced the sheet's own
+ * mount timing and was flaky in CI (passed locally, ~20% failure rate on
+ * GitHub's runners) even though it never flaked locally.
  */
-async function dismissInstallPromptIfPresent(page: Page) {
-  const dismiss = page.getByTestId("install-prompt-dismiss");
-  if (await dismiss.isVisible().catch(() => false)) {
-    await dismiss.click();
-  }
+async function suppressInstallPrompt(page: Page) {
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      "wanderlost.install-prompt-dismissed-at",
+      String(Date.now()),
+    );
+  });
 }
 
 test.describe("@phase9 @ethics no referral gating", () => {
   test("the share sheet never gates anything behind inviting or sharing", async ({ page }) => {
+    await suppressInstallPrompt(page);
     await bookTrip(page);
     const trip = await tripId(page);
     await page.goto(`/trips/${trip}`);
-    await dismissInstallPromptIfPresent(page);
     await page.getByTestId("open-share-sheet").click();
     const text = await page.getByTestId("share-sheet").innerText();
     expect(text).not.toMatch(BANNED_COPY_PATTERN);
   });
 
   test("the public shared page never gates anything behind inviting or sharing", async ({ page }) => {
+    await suppressInstallPrompt(page);
     await bookTrip(page);
     const trip = await tripId(page);
     await page.goto(`/trips/${trip}`);
-    await dismissInstallPromptIfPresent(page);
     await page.getByTestId("open-share-sheet").click();
     await page.getByLabel("Can add ideas").check();
     await page.getByTestId("generate-share-link").click();
