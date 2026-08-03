@@ -76,7 +76,9 @@ async function fetchWikidataAttractions(city: CityConfig): Promise<WikidataRespo
 async function fetchWikivoyageListing(city: CityConfig): Promise<WikivoyageResponse> {
   const cachePath = join(RAW_DIR, "wikivoyage", `${citySlug(city.city)}.json`);
   const url = `https://en.wikivoyage.org/w/api.php?action=parse&page=${encodeURIComponent(city.city)}&prop=wikitext&format=json`;
-  return cachedFetchJson<WikivoyageResponse>(cachePath, url);
+  return cachedFetchJson<WikivoyageResponse>(cachePath, url, {
+    headers: { "User-Agent": "Wanderlost/1.0 (travel simulation app, POI seed script)" },
+  });
 }
 
 function overpassQuery(city: CityConfig): string {
