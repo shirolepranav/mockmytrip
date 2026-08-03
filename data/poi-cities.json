@@ -2,20 +2,20 @@
  {
   "city": "Atlanta",
   "isoCountry": "US",
-  "lat": 33.6367,
-  "lng": -84.428101
+  "lat": 33.749,
+  "lng": -84.388
  },
  {
   "city": "Chicago",
   "isoCountry": "US",
-  "lat": 41.9786,
-  "lng": -87.9048
+  "lat": 41.8781,
+  "lng": -87.6298
  },
  {
   "city": "Dallas-Fort Worth",
   "isoCountry": "US",
-  "lat": 32.896801,
-  "lng": -97.038002
+  "lat": 32.7767,
+  "lng": -96.797
  },
  {
   "city": "Denver",
@@ -26,8 +26,8 @@
  {
   "city": "New York",
   "isoCountry": "US",
-  "lat": 40.639447,
-  "lng": -73.779317
+  "lat": 40.758,
+  "lng": -73.9855
  },
  {
   "city": "Los Angeles",
@@ -38,26 +38,26 @@
  {
   "city": "San Francisco",
   "isoCountry": "US",
-  "lat": 37.619806,
-  "lng": -122.374821
+  "lat": 37.7749,
+  "lng": -122.4194
  },
  {
   "city": "Seattle",
   "isoCountry": "US",
-  "lat": 47.447943,
-  "lng": -122.310276
+  "lat": 47.6062,
+  "lng": -122.3321
  },
  {
   "city": "Miami",
   "isoCountry": "US",
-  "lat": 25.796011,
-  "lng": -80.289751
+  "lat": 25.7617,
+  "lng": -80.1918
  },
  {
   "city": "Toronto",
   "isoCountry": "CA",
-  "lat": 43.675935,
-  "lng": -79.629421
+  "lat": 43.6532,
+  "lng": -79.3832
  },
  {
   "city": "London",
@@ -86,14 +86,14 @@
  {
   "city": "Madrid",
   "isoCountry": "ES",
-  "lat": 40.493407,
-  "lng": -3.572249
+  "lat": 40.4168,
+  "lng": -3.7038
  },
  {
   "city": "Istanbul",
   "isoCountry": "TR",
-  "lat": 41.274874,
-  "lng": 28.732136
+  "lat": 41.0082,
+  "lng": 28.9784
  },
  {
   "city": "Dubai",
@@ -110,8 +110,8 @@
  {
   "city": "Singapore",
   "isoCountry": "SG",
-  "lat": 1.35019,
-  "lng": 103.994003
+  "lat": 1.2839,
+  "lng": 103.8517
  },
  {
   "city": "Tokyo",
@@ -122,20 +122,20 @@
  {
   "city": "Seoul",
   "isoCountry": "KR",
-  "lat": 37.469101,
-  "lng": 126.450996
+  "lat": 37.5665,
+  "lng": 126.978
  },
  {
   "city": "Hong Kong",
   "isoCountry": "HK",
-  "lat": 22.31184,
-  "lng": 113.914862
+  "lat": 22.2793,
+  "lng": 114.1628
  },
  {
   "city": "Bangkok",
   "isoCountry": "TH",
-  "lat": 13.6811,
-  "lng": 100.747002
+  "lat": 13.7563,
+  "lng": 100.5018
  },
  {
   "city": "Sydney (Mascot)",
@@ -146,44 +146,44 @@
  {
   "city": "São Paulo",
   "isoCountry": "BR",
-  "lat": -23.431274,
-  "lng": -46.469954
+  "lat": -23.5505,
+  "lng": -46.6333
  },
  {
   "city": "Mexico City",
   "isoCountry": "MX",
-  "lat": 19.435822,
-  "lng": -99.07033
+  "lat": 19.4326,
+  "lng": -99.1332
  },
  {
   "city": "Bogota",
   "isoCountry": "CO",
-  "lat": 4.70159,
-  "lng": -74.1469
+  "lat": 4.711,
+  "lng": -74.0721
  },
  {
   "city": "Johannesburg",
   "isoCountry": "ZA",
-  "lat": -26.140081,
-  "lng": 28.246801
+  "lat": -26.2041,
+  "lng": 28.0473
  },
  {
   "city": "Cairo",
   "isoCountry": "EG",
-  "lat": 30.111534,
-  "lng": 31.396694
+  "lat": 30.0444,
+  "lng": 31.2357
  },
  {
   "city": "New Delhi",
   "isoCountry": "IN",
-  "lat": 28.55563,
-  "lng": 77.09519
+  "lat": 28.6315,
+  "lng": 77.2167
  },
  {
   "city": "Mumbai",
   "isoCountry": "IN",
-  "lat": 19.088699,
-  "lng": 72.867897
+  "lat": 18.975,
+  "lng": 72.8258
  },
  {
   "city": "Lisbon",
@@ -194,7 +194,7 @@
  {
   "city": "Reykjavík",
   "isoCountry": "IS",
-  "lat": 63.985001,
-  "lng": -22.6056
+  "lat": 64.1466,
+  "lng": -21.9426
  }
 ]
